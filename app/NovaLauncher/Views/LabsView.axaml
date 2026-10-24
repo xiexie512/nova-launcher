@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NovaLauncher.Views.LabsView">
+  <ScrollViewer>
+    <StackPanel Spacing="16">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Classes="pageTitle" Text="功能实验室" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding Status}" Classes="muted" VerticalAlignment="Center" FontSize="12" />
+      </StackPanel>
+
+      <!-- 陶瓦联机 / 虚拟局域网 -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="6">
+            <TextBlock Text="🔗 内置联机（陶瓦联机核心 + NovaNet 虚拟局域网）" FontWeight="SemiBold" FontSize="15" />
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#9AA0A6"
+                       Text="NovaNet 虚拟局域网已在主页「联机房间」区块上线：UDP 组播自动发现房间，一键复制地址加入。这里保留联机核心导入 SDK：可将陶瓦联机等第三方核心（dll/jar）放入 cores 目录接入。" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Classes="secondary" Click="ImportCore_Click">
+              <TextBlock Text="导入联机核心…" />
+            </Button>
+            <Button Classes="secondary" Command="{Binding OpenCoresDirCommand}">
+              <TextBlock Text="核心目录" />
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- 星闪/蓝牙 存档同步 -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+          <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
+            <TextBlock Text="💾 跨设备存档管理" FontWeight="SemiBold" FontSize="15" />
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#9AA0A6"
+                       Text="利用星闪/蓝牙近场通讯实现存档接续（近场 SDK 需硬件授权，当前提供导出/导入存档文件互传，支持多设备存档共享）。" />
+          </StackPanel>
+          <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Classes="secondary" Click="ExportSaves_Click">
+              <TextBlock Text="导出存档" />
+            </Button>
+            <Button Classes="secondary" Click="ImportSaves_Click">
+              <TextBlock Text="导入存档" />
+            </Button>
+            <Button Classes="secondary" Command="{Binding OpenExportDirCommand}">
+              <TextBlock Text="导出目录" />
+            </Button>
+          </StackPanel>
+          <ComboBox Grid.Row="1" Grid.Column="0" x:Name="VersionCombo" Width="320" Margin="0,10,0,0"
+                    HorizontalAlignment="Left" PlaceholderText="选择版本（用于存档导出/导入）" />
+        </Grid>
+      </Border>
+
+      <!-- 投影与预览 -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="6">
+            <TextBlock Text="🏗️ 投影与预览" FontWeight="SemiBold" FontSize="15" />
+            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#9AA0A6"
+                       Text="内置功能实验室：支持超大投影即刻预览；空间模式下无需启动游戏自由预览。当前需配合 Litematica 模组使用（.litematic 放入游戏目录 schematics/）。" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="secondary" Command="{Binding OpenProjectionDocCommand}" VerticalAlignment="Center">
+            <TextBlock Text="查看接入说明" />
+          </Button>
+        </Grid>
+      </Border>
+
+      <!-- AI Nova -->
+      <Border Classes="card">
+        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="🤖 AI 助手 Nova" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+            <Button Classes="secondary" Command="{Binding OpenAiSettingsCommand}">
+              <TextBlock Text="配置接口" />
+            </Button>
+            <TextBlock Text="未配置时仅显示帮助信息" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBox Grid.Row="1" Margin="0,10,0,0" Height="80" AcceptsReturn="True" TextWrapping="Wrap"
+                   Watermark="问 Nova：例如「我的模组冲突了怎么办」「1.21 怎么装光影」「推荐一个空岛整合包」"
+                   Text="{Binding NovaInput, Mode=TwoWay}" />
+          <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+            <TextBlock Grid.Column="0" Text="{Binding NovaOutput}" TextWrapping="Wrap" FontSize="12" Foreground="#C6CBD1" />
+            <Button Grid.Column="1" Classes="primary" VerticalAlignment="Bottom" Command="{Binding SendNovaCommand}">
+              <TextBlock Text="发送" />
+            </Button>
+          </Grid>
+        </Grid>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

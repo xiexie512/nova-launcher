@@ -1,0 +1,30 @@
+# ============ macOS ============
+.DS_Store
+
+# ============ .NET 构建产物 ============
+**/bin/
+**/obj/
+
+# ============ 内核构建产物 ============
+kernel/build/
+kernel/build_win/
+build/
+
+# ============ 发布安装包（源码仓库不含二进制） ============
+dist/
+
+# 主程序内嵌的内核动态库（由 scripts/build_all.sh 编译后复制进来）
+app/NovaLauncher/Native/*.dylib
+app/NovaLauncher/Native/*.dll
+!app/NovaLauncher/Native/.gitkeep
+
+# ============ IDE / 编辑器 ============
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.swp
+
+# ============ 日志 / 运行时数据 ============
+*.log

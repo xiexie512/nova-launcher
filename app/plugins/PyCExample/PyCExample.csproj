@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>PyCExample</AssemblyName>
+    <RootNamespace>PyCExample</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../NovaLauncher.PluginApi/NovaLauncher.PluginApi.csproj" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="scripts/*.py" />
+  </ItemGroup>
+</Project>

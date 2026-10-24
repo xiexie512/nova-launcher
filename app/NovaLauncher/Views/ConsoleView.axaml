@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NovaLauncher.Views.ConsoleView">
+  <Grid RowDefinitions="Auto,*" Margin="0,0,0,0">
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+      <TextBlock Classes="pageTitle" Text="控制台" VerticalAlignment="Center" />
+      <Border Width="1" Height="24" Background="#222834" />
+      <TextBox Width="220" Watermark="过滤日志…" Text="{Binding Filter, Mode=TwoWay}" VerticalAlignment="Center" />
+      <CheckBox IsChecked="{Binding AutoScroll}" Content="自动滚动" VerticalAlignment="Center" FontSize="12" />
+      <Button Classes="secondary" Command="{Binding ClearCommand}">
+        <TextBlock Text="清空" />
+      </Button>
+    </StackPanel>
+
+    <Border Grid.Row="1" Background="#0B0D11" CornerRadius="10" BorderBrush="#222834" BorderThickness="1" Padding="12">
+      <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Filtered}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding}" FontFamily="Menlo, Consolas, monospace" FontSize="11"
+                         Foreground="#B9C0C8" TextWrapping="Wrap" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NovaLauncher.Views.PluginPageView">
+  <ScrollViewer>
+    <StackPanel Spacing="16">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Classes="pageTitle" Text="{Binding Title}" VerticalAlignment="Center" />
+        <Border Classes="badge" Padding="8,3">
+          <TextBlock Text="插件页面" FontSize="11" Foreground="#7FE08C" />
+        </Border>
+      </StackPanel>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{Binding Icon}" FontSize="28" />
+          <TextBlock Text="{Binding Body}" FontSize="13" Foreground="#C9CED6" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <ItemsControl ItemsSource="{Binding Actions}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Button Classes="primary" Margin="0,0,10,10" Padding="14,7"
+                    Command="{Binding Click}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{Binding Icon}" />
+                <TextBlock Text="{Binding Label}" />
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Border Classes="card">
+        <TextBlock FontSize="11" Foreground="#5C6470" TextWrapping="Wrap"
+                   Text="本页面由插件注册。插件还能注册主页卡片、修改启动器设置、订阅游戏事件——放入 plugins 目录的 dll 即可扩展整个启动器。" />
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

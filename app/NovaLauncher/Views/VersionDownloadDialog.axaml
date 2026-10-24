@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="NovaLauncher.Views.VersionDownloadDialog"
+        Title="下载游戏版本" Width="600" Height="540"
+        WindowStartupLocation="CenterOwner" CanResize="False">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="22">
+    <!-- 标题 -->
+    <TextBlock Grid.Row="0" Text="下载游戏版本" FontSize="18" FontWeight="SemiBold" Foreground="#E8EAED" Margin="0,0,0,14" />
+
+    <!-- 分类 + 版本 -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,12,Auto,*" Margin="0,0,0,10">
+      <TextBlock Text="版本分类" FontSize="12" Foreground="#9AA0A6" VerticalAlignment="Center" />
+      <ComboBox x:Name="CategoryBox" Grid.Column="1" MinWidth="120" SelectedIndex="0" SelectionChanged="CategoryBox_SelectionChanged">
+        <ComboBoxItem Tag="release">正式版</ComboBoxItem>
+        <ComboBoxItem Tag="snapshot">测试版</ComboBoxItem>
+        <ComboBoxItem Tag="old">远古版</ComboBoxItem>
+        <ComboBoxItem Tag="april">愚人节版</ComboBoxItem>
+      </ComboBox>
+      <TextBlock Grid.Column="2" Text="" />
+      <TextBlock Grid.Column="3" Text="游戏版本" FontSize="12" Foreground="#9AA0A6" VerticalAlignment="Center" />
+      <ComboBox x:Name="VersionBox" Grid.Column="4" MinWidth="220" MaxDropDownHeight="260">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Id}" FontSize="12" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding TypeLabel}" FontSize="10" Foreground="#7FE08C" />
+            </StackPanel>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </Grid>
+
+    <!-- 加载器 + 光影 -->
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,12,Auto,*" Margin="0,0,0,8">
+      <TextBlock Text="模组加载器" FontSize="12" Foreground="#9AA0A6" VerticalAlignment="Center" />
+      <ComboBox x:Name="LoaderBox" Grid.Column="1" MinWidth="120" SelectedIndex="0" SelectionChanged="LoaderShaderBox_SelectionChanged">
+        <ComboBoxItem Tag="">无</ComboBoxItem>
+        <ComboBoxItem Tag="fabric">Fabric</ComboBoxItem>
+        <ComboBoxItem Tag="forge">Forge</ComboBoxItem>
+        <ComboBoxItem Tag="neoforge">NeoForge</ComboBoxItem>
+        <ComboBoxItem Tag="quilt">Quilt</ComboBoxItem>
+      </ComboBox>
+      <TextBlock Grid.Column="2" Text="" />
+      <TextBlock Grid.Column="3" Text="光影加载器" FontSize="12" Foreground="#9AA0A6" VerticalAlignment="Center" />
+      <ComboBox x:Name="ShaderBox" Grid.Column="4" MinWidth="150" SelectedIndex="0" SelectionChanged="LoaderShaderBox_SelectionChanged">
+        <ComboBoxItem Tag="">无</ComboBoxItem>
+        <ComboBoxItem Tag="iris">Iris（含 Sodium）</ComboBoxItem>
+        <ComboBoxItem Tag="optifine">OptiFine</ComboBoxItem>
+      </ComboBox>
+    </Grid>
+
+    <!-- 兼容性提示 -->
+    <TextBlock x:Name="NoteText" Grid.Row="3" FontSize="11" Foreground="#7FE08C" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+    <!-- 进度 -->
+    <ProgressBar x:Name="Progress" Grid.Row="4" IsIndeterminate="True" IsVisible="False" Height="5" Margin="0,0,0,8" />
+    <TextBlock x:Name="Status" Grid.Row="5" FontSize="12" Foreground="#9AA0A6" TextWrapping="Wrap" VerticalAlignment="Top" />
+
+    <!-- 操作 -->
+    <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+      <Button x:Name="CloseBtn" Classes="secondary" Click="Close_Click">
+        <TextBlock Text="关闭" />
+      </Button>
+      <Button x:Name="DownloadBtn" Classes="primary" Click="Download_Click">
+        <TextBlock Text="⬇ 下载并安装" />
+      </Button>
+    </StackPanel>
+  </Grid>
+</Window>

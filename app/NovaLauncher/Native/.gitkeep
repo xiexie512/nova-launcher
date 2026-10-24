@@ -1,0 +1,2 @@
+# This directory holds platform kernel dynamic libraries copied in by scripts/build_all.sh
+# (libnova_kernel.dylib on macOS, nova_kernel.dll on Windows). They are build outputs and ignored by git.

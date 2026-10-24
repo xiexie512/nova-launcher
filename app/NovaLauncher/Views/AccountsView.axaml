@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NovaLauncher.Views.AccountsView">
+  <Grid RowDefinitions="Auto,*" Margin="0,0,0,0">
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,12">
+      <TextBlock Classes="pageTitle" Text="账户管理" VerticalAlignment="Center" />
+      <Border Width="1" Height="24" Background="#222834" />
+      <Button Classes="secondary" Command="{Binding AddOfflineCommand}">
+        <TextBlock Text="＋ 离线账户" />
+      </Button>
+      <Button Classes="secondary" Click="Yggdrasil_Click">
+        <TextBlock Text="＋ Yggdrasil 外置登录" />
+      </Button>
+      <Button Classes="secondary" Command="{Binding AddMicrosoftCommand}">
+        <TextBlock Text="＋ 微软正版登录" />
+      </Button>
+      <TextBlock Text="{Binding Status}" Classes="muted" VerticalAlignment="Center" FontSize="12" />
+    </StackPanel>
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Accounts}" Background="Transparent">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <Border Classes="rowItem" Margin="0,0,0,8" Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
+                <Border Classes="badgeOther">
+                  <TextBlock Text="{Binding TypeLabel}" FontSize="10" Foreground="#9AA0A6" />
+                </Border>
+                <TextBlock Text="{Binding UuidShort}" FontSize="11" Foreground="#5C6470" />
+                <TextBlock Text="✓ 默认" FontSize="11" Foreground="#7FE08C" IsVisible="{Binding Selected}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.SelectCommand}" CommandParameter="{Binding}">
+                  <TextBlock Text="设为默认" />
+                </Button>
+                <Button Classes="danger" Command="{Binding $parent[ListBox].DataContext.RemoveCommand}" CommandParameter="{Binding}">
+                  <TextBlock Text="删除" />
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </Grid>
+</UserControl>

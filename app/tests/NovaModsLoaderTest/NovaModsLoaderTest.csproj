@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>NovaModsLoaderTest</RootNamespace>
+    <AssemblyName>NovaModsLoaderTest</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../NovaLauncher.PluginApi/NovaLauncher.PluginApi.csproj" />
+    <ProjectReference Include="../../plugins/NovaModsLoader/NovaModsLoader.csproj" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+</Project>

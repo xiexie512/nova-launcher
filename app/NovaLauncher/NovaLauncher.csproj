@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>NovaLauncher</RootNamespace>
+    <AssemblyName>NovaLauncher</AssemblyName>
+    <ApplicationIcon>../../assets/icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <!-- SDK 8.0.4xx+ 中 MVVM 包的 AfterTargets 钩子失效，强制注入源生成器 -->
+    <Analyzer Include="$(NuGetPackageRoot)communitytoolkit.mvvm/8.4.0/analyzers/dotnet/roslyn4.3/cs/CommunityToolkit.Mvvm.SourceGenerators.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../NovaLauncher.PluginApi/NovaLauncher.PluginApi.csproj" />
+    <ProjectReference Include="../NovaLauncher.PluginHosting/NovaLauncher.PluginHosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 自研 C 内核动态库：按目标平台打包对应文件（输出到根目录，便于 DllImport 解析） -->
+    <None Include="Native/libnova_kernel.dylib" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Link="libnova_kernel.dylib">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Native/nova_kernel.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))" Link="nova_kernel.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- 内置 ZeroTier 虚拟局域网安装包（macOS pkg / Windows msi），离线可用 -->
+    <Content Include="../../assets/installers/ZeroTier-One.pkg" Condition="!$(RuntimeIdentifier.StartsWith('win'))" Link="installers/ZeroTier-One.pkg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="../../assets/installers/ZeroTier-One.msi" Condition="$(RuntimeIdentifier.StartsWith('win'))" Link="installers/ZeroTier-One.msi">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

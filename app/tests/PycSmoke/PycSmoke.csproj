@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>PycSmoke</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../NovaLauncher.PluginApi/NovaLauncher.PluginApi.csproj" />
+    <!-- 被测插件：把 PyCExample.dll 编译并复制到测试输出目录 -->
+    <ProjectReference Include="../../plugins/PyCExample/PyCExample.csproj" />
+  </ItemGroup>
+</Project>

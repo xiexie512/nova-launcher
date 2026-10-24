@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="NovaLauncher.Views.ModpackDownloadDialog"
+        Title="整合包下载（Modrinth）" Width="720" Height="600"
+        WindowStartupLocation="CenterOwner" CanResize="False">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="22">
+    <TextBlock Grid.Row="0" Text="整合包下载（Modrinth）" FontSize="18" FontWeight="SemiBold" Foreground="#E8EAED" Margin="0,0,0,12" />
+
+    <!-- 搜索 + 过滤 -->
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,12,Auto,12,Auto" Margin="0,0,0,8">
+      <TextBox x:Name="SearchBox" Watermark="整合包名称 / 关键词，如 better、create、rpg…" />
+      <Button Grid.Column="1" Classes="primary" Click="Search_Click">
+        <TextBlock Text="🔍 搜索" />
+      </Button>
+      <TextBlock Grid.Column="2" Text="" />
+      <ComboBox x:Name="McFilterBox" Grid.Column="3" MinWidth="130" SelectedIndex="0" />
+      <TextBlock Grid.Column="4" Text="" />
+      <ComboBox x:Name="LoaderFilterBox" Grid.Column="5" MinWidth="110" SelectedIndex="0">
+        <ComboBoxItem Tag="">全部加载器</ComboBoxItem>
+        <ComboBoxItem Tag="fabric">Fabric</ComboBoxItem>
+        <ComboBoxItem Tag="forge">Forge</ComboBoxItem>
+        <ComboBoxItem Tag="neoforge">NeoForge</ComboBoxItem>
+        <ComboBoxItem Tag="quilt">Quilt</ComboBoxItem>
+      </ComboBox>
+    </Grid>
+
+    <!-- 结果列表 -->
+    <ListBox x:Name="ResultsBox" Grid.Row="2" Background="Transparent" Margin="0,0,0,10">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <Border Classes="rowItem" Margin="0,0,0,8" Padding="14,10">
+            <StackPanel Spacing="3">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Author}" FontSize="11" Foreground="#7FE08C" />
+                <Border Classes="badge">
+                  <TextBlock Text="{Binding DownloadsText, StringFormat='⬇ {0}'}" FontSize="10" Foreground="#9AA0A6" />
+                </Border>
+              </StackPanel>
+              <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#9AA0A6" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- 状态 -->
+    <ProgressBar x:Name="Progress" Grid.Row="3" IsIndeterminate="True" IsVisible="False" Height="5" Margin="0,0,0,8" />
+    <TextBlock x:Name="Status" Grid.Row="3" FontSize="12" Foreground="#9AA0A6" TextWrapping="Wrap" VerticalAlignment="Bottom" />
+
+    <!-- 操作 -->
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,10,0,0">
+      <Button Classes="secondary" Click="Close_Click">
+        <TextBlock Text="关闭" />
+      </Button>
+      <Button x:Name="DownloadBtn" Classes="primary" Click="Download_Click">
+        <TextBlock Text="⬇ 下载并导入" />
+      </Button>
+    </StackPanel>
+  </Grid>
+</Window>

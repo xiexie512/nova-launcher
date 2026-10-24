@@ -1,0 +1,122 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:NovaLauncher.ViewModels"
+        xmlns:views="using:NovaLauncher.Views"
+        x:Class="NovaLauncher.Views.MainWindow"
+        x:Name="Root"
+        Title="NovaLauncher · 我的世界启动器"
+        Width="1220" Height="780"
+        MinWidth="1020" MinHeight="660"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.DataTemplates>
+    <DataTemplate DataType="{x:Type vm:HomeViewModel}"><views:HomeView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:VersionsViewModel}"><views:VersionsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:AccountsViewModel}"><views:AccountsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ModpacksViewModel}"><views:ModpacksView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PluginsViewModel}"><views:PluginsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:MonitorViewModel}"><views:MonitorView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:LanViewModel}"><views:LanView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:LabsViewModel}"><views:LabsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ConsoleViewModel}"><views:ConsoleView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PluginPageViewModel}"><views:PluginPageView /></DataTemplate>
+  </Window.DataTemplates>
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="230" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- 左侧导航 -->
+    <Border Grid.Column="0" Background="#12151B">
+      <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <StackPanel Grid.Row="0" Margin="20,24,20,18" Spacing="6">
+          <TextBlock Text="NovaLauncher" FontSize="22" FontWeight="Bold" Foreground="#7FE08C" />
+          <TextBlock Text="我的世界启动器 · 自研 C 内核" FontSize="11" Foreground="#6B7280" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Home}" Classes.selected="{Binding IsHome}">
+            <TextBlock Text="🏠  首页" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Versions}" Classes.selected="{Binding IsVersions}">
+            <TextBlock Text="🎮  游戏版本" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Accounts}" Classes.selected="{Binding IsAccounts}">
+            <TextBlock Text="👤  账户管理" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Modpacks}" Classes.selected="{Binding IsModpacks}">
+            <TextBlock Text="📦  整合包" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Plugins}" Classes.selected="{Binding IsPlugins}">
+            <TextBlock Text="🧩  插件" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Monitor}" Classes.selected="{Binding IsMonitor}">
+            <TextBlock Text="📊  运行监控" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Lan}" Classes.selected="{Binding IsLan}">
+            <TextBlock Text="🛰  虚拟局域网" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Labs}" Classes.selected="{Binding IsLabs}">
+            <TextBlock Text="🧪  功能实验室" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Settings}" Classes.selected="{Binding IsSettings}">
+            <TextBlock Text="⚙️  设置" />
+          </Button>
+          <ItemsControl ItemsSource="{Binding PluginPages}" IsVisible="{Binding HasPluginPages}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="0" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Button Classes="navBtn" Command="{Binding #Root.DataContext.GoPluginCommand}" CommandParameter="{Binding Key}" Classes.selected="{Binding IsActive}">
+                  <TextBlock>
+                    <Run Text="{Binding Icon}" /><Run Text="  " /><Run Text="{Binding Title}" />
+                  </TextBlock>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Margin="8,0,8,16" Spacing="6">
+          <Border Background="#1A1F27" CornerRadius="8" Padding="12,10">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding KernelVersion, StringFormat='自研内核 v{0}'}" FontSize="11" Foreground="#8B949E" />
+              <TextBlock Text="C 引擎 · 多源下载 · 插件化" FontSize="10" Foreground="#5C6470" />
+            </StackPanel>
+          </Border>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Console}" Classes.selected="{Binding IsConsole}">
+            <TextBlock Text="🖥️  控制台" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding StopGameCommand}">
+            <TextBlock Text="⏹  结束游戏" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- 内容区 -->
+    <Grid Grid.Column="1" RowDefinitions="*,Auto">
+      <Border Grid.Row="0" Margin="24,20,24,8">
+        <ContentControl Content="{Binding Current}" />
+      </Border>
+
+      <!-- 底部状态栏 -->
+      <Border Grid.Row="1" Background="#12151B" BorderBrush="#222834" BorderThickness="0,1,0,0">
+        <Grid ColumnDefinitions="*,Auto" Margin="24,8">
+          <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <ProgressBar IsVisible="{Binding Downloading}" Width="180" Height="6" IsIndeterminate="False" Minimum="0" Maximum="100" />
+            <TextBlock Text="{Binding DownloadText}" FontSize="12" Foreground="#9AA0A6" />
+            <TextBlock IsVisible="{Binding GameRunning}" Text="● 游戏运行中" FontSize="12" Foreground="#7FE08C" />
+          </StackPanel>
+          <TextBlock Grid.Column="1" Text="{Binding HomeDir}" FontSize="11" Foreground="#5C6470" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

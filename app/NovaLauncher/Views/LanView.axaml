@@ -1,0 +1,230 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:NovaLauncher.Views"
+             x:Class="NovaLauncher.Views.LanView">
+  <ScrollViewer>
+    <StackPanel Spacing="16">
+
+      <!-- 顶栏 -->
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Classes="pageTitle" Text="虚拟局域网" VerticalAlignment="Center" />
+          <Border Classes="badge" Padding="10,4">
+            <TextBlock Text="{Binding EngineStatus}" FontSize="11" Foreground="#7FE08C" FontWeight="SemiBold" />
+          </Border>
+          <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="primary" Command="{Binding RefreshCommand}" IsEnabled="{Binding NotBusy}">
+          <TextBlock Text="刷新" />
+        </Button>
+      </Grid>
+
+      <!-- 引擎状态卡 -->
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Text="🛰️ 虚拟局域网引擎（ZeroTier）" FontWeight="SemiBold" FontSize="15" />
+          <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#9AA0A6"
+                     Text="通过集成 ZeroTier 组建跨设备虚拟内网：所有设备加入同一网络后，即可像在同一局域网一样联机 Minecraft，不受路由器/防火墙限制。" />
+
+          <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*,Auto" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Text="引擎版本" FontSize="11" Foreground="#9AA0A6" />
+              <TextBlock Text="{Binding EngineVersion}" FontSize="14" FontWeight="SemiBold" />
+            </StackPanel>
+            <Border Grid.Column="1" Width="1" Background="#2A2F3A" />
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="节点地址" FontSize="11" Foreground="#9AA0A6" />
+              <TextBlock Text="{Binding NodeId}" FontSize="14" FontWeight="SemiBold" />
+            </StackPanel>
+            <Border Grid.Column="3" Width="1" Background="#2A2F3A" />
+            <StackPanel Grid.Column="4">
+              <TextBlock Text="我的虚拟 IP" FontSize="11" Foreground="#9AA0A6" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding MyIp}" FontSize="14" FontWeight="SemiBold" Foreground="#7FE08C" />
+                <Button Classes="secondary" Click="CopyIp_Click" IsEnabled="{Binding Installed}">
+                  <TextBlock Text="复制" FontSize="11" />
+                </Button>
+              </StackPanel>
+            </StackPanel>
+            <Border Grid.Column="5" Width="1" Background="#2A2F3A" />
+            <StackPanel Grid.Column="6">
+              <TextBlock Text="管理后台" FontSize="11" Foreground="#9AA0A6" />
+              <Button Classes="secondary" Click="OpenCentral_Click">
+                <TextBlock Text="my.zerotier.com ↗" FontSize="11" />
+              </Button>
+            </StackPanel>
+          </Grid>
+
+          <TextBlock Text="{Binding LastMessage}" FontSize="11" Foreground="#E8B36A" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <!-- 未安装引导 -->
+      <Border Classes="card" IsVisible="{Binding NotInstalled}">
+        <StackPanel Spacing="10">
+          <TextBlock Text="📥 安装虚拟局域网引擎" FontWeight="SemiBold" FontSize="15" />
+          <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#9AA0A6"
+                     Text="本机未检测到 ZeroTier。点击下方按钮，启动器会按当前电脑版本（操作系统 · CPU 架构）自动匹配并下载官方安装包（macOS 为 pkg 安装器 / Windows 为 MSI），按系统向导完成安装后返回本页点「刷新」即可接管控制。" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="primary" Command="{Binding InstallCommand}" IsEnabled="{Binding NotBusy}">
+              <TextBlock Text="下载并打开安装包" />
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- 网络列表 -->
+      <Border Classes="card" IsVisible="{Binding Installed}">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Text="🌐 已加入的网络" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Networks.Count, StringFormat='{}{0} 个'}" FontSize="11" Foreground="#9AA0A6" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+              <TextBox Width="210" Watermark="输入 16 位网络 ID" Text="{Binding NetworkIdInput}" />
+              <Button Classes="primary" Command="{Binding JoinCommand}" IsEnabled="{Binding NotBusy}">
+                <TextBlock Text="加入网络" />
+              </Button>
+            </StackPanel>
+          </Grid>
+
+          <ItemsControl ItemsSource="{Binding Networks}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Background="#1A1E26" CornerRadius="8" Padding="14,10">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="4">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" />
+                        <Border Classes="badge" Padding="6,2">
+                          <TextBlock Text="{Binding Status}" FontSize="10" Foreground="#7FE08C" />
+                        </Border>
+                      </StackPanel>
+                      <TextBlock Text="{Binding Id}" FontSize="11" Foreground="#5C6470" />
+                      <TextBlock Text="{Binding AddressText, StringFormat='虚拟 IP: {0}'}" FontSize="12" Foreground="#7FE08C" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="danger" VerticalAlignment="Center" Content="离开" FontSize="11" Tag="{Binding Id}" Click="Leave_Click" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <TextBlock Text="加入网络后，如成员状态为 REQUESTING_AUTHORIZATION，请到 my.zerotier.com 该网络成员列表勾选 Auth 授权。" FontSize="11" Foreground="#9AA0A6" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <!-- 后台管理（Central 成员授权） -->
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Text="🔐 后台管理（成员授权）" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+              <Border Classes="badge" Padding="8,3">
+                <TextBlock Text="Central API" FontSize="10" Foreground="#7FE08C" />
+              </Border>
+            </StackPanel>
+            <Button Grid.Column="1" Classes="secondary" Command="{Binding RefreshAdminCommand}" IsEnabled="{Binding NotAdminBusy}">
+              <TextBlock Text="刷新" FontSize="11" />
+            </Button>
+          </Grid>
+
+          <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#9AA0A6"
+                     Text="不用再登录网页后台：用 Central 个人 API Token 在本页直接查看网络成员、一键授权新设备、取消授权或移除设备。Token 仅保存在本机（在 my.zerotier.com → Account 页面创建）。" />
+
+          <!-- 未配置 Token -->
+          <StackPanel IsVisible="{Binding NoToken}" Spacing="10">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBox Watermark="粘贴 Central API Token" Text="{Binding TokenInput}" PasswordChar="●" />
+              <Button Grid.Column="1" Classes="primary" Command="{Binding SaveTokenCommand}" IsEnabled="{Binding NotAdminBusy}">
+                <TextBlock Text="保存并加载" FontSize="12" />
+              </Button>
+              <Button Grid.Column="2" Classes="secondary" Command="{Binding OpenAccountPageCommand}" IsEnabled="{Binding NotAdminBusy}">
+                <TextBlock Text="获取 Token ↗" FontSize="12" />
+              </Button>
+            </Grid>
+            <TextBlock Text="{Binding AdminMessage}" FontSize="11" Foreground="#E8B36A" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <!-- 已配置 Token：网络选择 + 成员列表 -->
+          <StackPanel IsVisible="{Binding HasToken}" Spacing="12">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+              <TextBlock Text="网络" FontSize="12" Foreground="#9AA0A6" VerticalAlignment="Center" />
+              <ComboBox Grid.Column="1" ItemsSource="{Binding AdminNetworks}" SelectedItem="{Binding SelectedNetwork}" IsEnabled="{Binding NotAdminBusy}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Summary}" FontSize="10" Foreground="#9AA0A6" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Grid.Column="2" Classes="secondary" Command="{Binding RefreshAdminCommand}" IsEnabled="{Binding NotAdminBusy}">
+                <TextBlock Text="刷新成员" FontSize="12" />
+              </Button>
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding Members}" IsVisible="{Binding Members.Count, Converter={x:Static local:ObjectConverters.CountToNotEmpty}}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Background="#1A1E26" CornerRadius="8" Padding="14,10">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" />
+                          <Border Classes="badge" Padding="6,2">
+                            <TextBlock Text="{Binding AuthText}" FontSize="10" Foreground="{Binding Authorized, Converter={x:Static local:ObjectConverters.BoolToBrush}}" />
+                          </Border>
+                          <Border Classes="badge" Padding="6,2">
+                            <TextBlock Text="{Binding OnlineText}" FontSize="10" Foreground="{Binding IsOnline, Converter={x:Static local:ObjectConverters.BoolToBrush}}" />
+                          </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding NodeId}" FontSize="11" Foreground="#5C6470" />
+                        <TextBlock Text="{Binding VirtualIp, StringFormat='虚拟 IP: {0}'}" FontSize="12" Foreground="#7FE08C" />
+                        <TextBlock Text="{Binding PhysicalAddress, StringFormat='物理 IP: {0}'}" FontSize="11" Foreground="#9AA0A6" />
+                        <TextBlock Text="{Binding LastOnlineText, StringFormat='最后在线: {0}'}" FontSize="11" Foreground="#9AA0A6" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button Classes="secondary" Content="{Binding AuthToggleText}" FontSize="11"
+                                Command="{Binding $parent[UserControl].DataContext.ToggleAuthCommand}" CommandParameter="{Binding}" />
+                        <Button Classes="danger" Content="移除" FontSize="11" Tag="{Binding}" Click="AdminRemove_Click" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel IsVisible="{Binding Members.Count, Converter={x:Static local:ObjectConverters.CountToEmpty}}" Spacing="4">
+              <TextBlock Text="该网络暂无成员。新设备加入网络后才会出现在这里，未授权设备可直接在此一键授权。" FontSize="11" Foreground="#9AA0A6" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding AdminMessage}" FontSize="11" Foreground="#E8B36A" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- 联机教程 -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="🎮 虚拟局域网联机教程" FontWeight="SemiBold" FontSize="15" />
+          <TextBlock FontSize="12" Foreground="#9AA0A6" TextWrapping="Wrap"
+                     Text="1. 所有玩家安装 ZeroTier 并加入同一个网络（网络 ID 相同），等待状态变为 OK、获得虚拟 IP；&#x0a;2. 房主在 NovaLauncher 启动单人存档并开启「对局域网开放」（在游戏内 ESC → 对局域网开放）；&#x0a;3. 其他玩家在 NovaLauncher 的服务器页添加服务器，地址填 房主的虚拟 IP + 端口（如 10.61.116.36:25565）；&#x0a;4. 连接成功即完成跨网络联机。也可将「我的虚拟 IP」复制给好友直接使用。" />
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

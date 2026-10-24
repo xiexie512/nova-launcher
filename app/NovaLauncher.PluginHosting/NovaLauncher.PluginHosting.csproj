@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>NovaLauncher.PluginHosting</RootNamespace>
+    <AssemblyName>NovaLauncher.PluginHosting</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NovaLauncher.PluginApi/NovaLauncher.PluginApi.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="host.py" />
+  </ItemGroup>
+</Project>

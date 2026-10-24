@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>NovaModsLoader</AssemblyName>
+    <RootNamespace>NovaModsLoader</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../NovaLauncher.PluginApi/NovaLauncher.PluginApi.csproj" Private="false" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:NovaLauncher.Views"
+             x:Class="NovaLauncher.Views.MonitorView">
+  <StackPanel Spacing="16">
+    <StackPanel Orientation="Horizontal" Spacing="10">
+      <TextBlock Classes="pageTitle" Text="游戏运行监控" VerticalAlignment="Center" />
+      <TextBlock Text="{Binding Running, StringFormat='状态: {0}'}" VerticalAlignment="Center" FontSize="12" Foreground="#9AA0A6" />
+      <Button Classes="danger" Command="{Binding StopCommand}">
+        <TextBlock Text="结束游戏" />
+      </Button>
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+      <Border Classes="card">
+        <StackPanel Spacing="4">
+          <TextBlock Text="CPU 占用" FontSize="12" Foreground="#9AA0A6" />
+          <TextBlock Text="{Binding CpuNow, StringFormat='{}{0:F1} %'}" FontSize="28" FontWeight="Bold" Foreground="#4CBE59" />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Grid.Column="1">
+        <StackPanel Spacing="4">
+          <TextBlock Text="内存占用" FontSize="12" Foreground="#9AA0A6" />
+          <TextBlock Text="{Binding MemNow, StringFormat='{}{0:F0} MB'}" FontSize="28" FontWeight="Bold" Foreground="#4A9BE8" />
+        </StackPanel>
+      </Border>
+      <Border Classes="card" Grid.Column="2">
+        <StackPanel Spacing="4">
+          <TextBlock Text="线程数" FontSize="12" Foreground="#9AA0A6" />
+          <TextBlock Text="{Binding Threads}" FontSize="28" FontWeight="Bold" Foreground="#E0C07F" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Classes="card" Padding="0">
+      <views:MonitorChart x:Name="Chart" Height="300" ViewModel="{Binding}" />
+    </Border>
+
+    <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+               Text="每秒采样一次。内存单位为 MB，CPU 为占用百分比。若曲线无数据，说明游戏尚未运行或已退出。" />
+  </StackPanel>
+</UserControl>

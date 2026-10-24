@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NovaLauncher.Views.ModpacksView">
+  <Grid RowDefinitions="Auto,*" Margin="0,0,0,0">
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,12">
+      <TextBlock Classes="pageTitle" Text="整合包" VerticalAlignment="Center" />
+      <Border Width="1" Height="24" Background="#222834" />
+      <Button Classes="primary" Click="ModsStore_Click">
+        <TextBlock Text="🔍 模组下载" />
+      </Button>
+      <Button Classes="secondary" Click="PackStore_Click">
+        <TextBlock Text="📦 整合包下载" />
+      </Button>
+      <Button Classes="secondary" Click="Import_Click">
+        <TextBlock Text="📥 导入整合包（.mrpack / .zip）" />
+      </Button>
+      <TextBlock Text="{Binding Status}" Classes="muted" VerticalAlignment="Center" FontSize="12" />
+    </StackPanel>
+
+    <ListBox Grid.Row="1" ItemsSource="{Binding Instances}" Background="Transparent">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <Border Classes="rowItem" Margin="0,0,0,8" Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
+                <TextBlock Text="MC {Binding McVersion}" FontSize="11" Foreground="#9AA0A6" />
+                <TextBlock Text="{Binding Loader}" FontSize="11" Foreground="#7FE08C" />
+                <TextBlock Text="{Binding SizeMb} MB" FontSize="11" Foreground="#5C6470" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Classes="primary" Command="{Binding $parent[ListBox].DataContext.LaunchCommand}" CommandParameter="{Binding}">
+                  <TextBlock Text="启动" />
+                </Button>
+                <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.ExportCommand}" CommandParameter="{Binding}">
+                  <TextBlock Text="导出" />
+                </Button>
+                <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.OpenDirCommand}" CommandParameter="{Binding}">
+                  <TextBlock Text="打开目录" />
+                </Button>
+              </StackPanel>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </Grid>
+</UserControl>
