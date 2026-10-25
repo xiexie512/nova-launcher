@@ -42,6 +42,11 @@ public sealed partial class MainViewModel : ObservableObject
         SyncPluginPages();
         Current = Home;
         Home.NavigateRequested += p => Page = p;
+        // 编辑主页模式（CustomizeOpen）切换时，同步更新导航栏可见性
+        Home.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(HomeViewModel.CustomizeOpen)) OnPropertyChanged(nameof(NavVisible));
+        };
         AppServices.Versions.Progress += (phase, done, total, finished) =>
         {
             Downloading = !finished;
@@ -88,6 +93,7 @@ public sealed partial class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsPlugins)); OnPropertyChanged(nameof(IsMonitor));
                 OnPropertyChanged(nameof(IsLan)); OnPropertyChanged(nameof(IsLabs));
                 OnPropertyChanged(nameof(IsSettings)); OnPropertyChanged(nameof(IsConsole));
+                OnPropertyChanged(nameof(NavVisible));
             }
         }
     }
@@ -103,6 +109,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsPlugins)); OnPropertyChanged(nameof(IsMonitor));
         OnPropertyChanged(nameof(IsLan)); OnPropertyChanged(nameof(IsLabs));
         OnPropertyChanged(nameof(IsSettings)); OnPropertyChanged(nameof(IsConsole));
+        OnPropertyChanged(nameof(NavVisible));
     }
 
     private void UpdateCurrent()
@@ -145,6 +152,12 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsLabs => PluginPageKey == null && Page == PageKey.Labs;
     public bool IsSettings => PluginPageKey == null && Page == PageKey.Settings;
     public bool IsConsole => PluginPageKey == null && Page == PageKey.Console;
+
+    /// <summary>
+    /// 导航栏可见性：仅在首页且开启编辑主页模式（CustomizeOpen）时隐藏导航栏；
+    /// 其余页面或未进入编辑模式时始终显示。
+    /// </summary>
+    public bool NavVisible => !IsHome || !Home.CustomizeOpen;
 
     public bool Downloading { get => _downloading; set => SetProperty(ref _downloading, value); }
     public string DownloadText { get => _downloadText; set => SetProperty(ref _downloadText, value); }

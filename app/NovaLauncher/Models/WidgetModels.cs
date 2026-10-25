@@ -55,6 +55,9 @@ public sealed class PlacedWidget : ObservableObject
     public double W => Cols * WidgetGrid.CellW + (Cols - 1) * WidgetGrid.Gap;
     public double H => Rows * WidgetGrid.CellH + (Rows - 1) * WidgetGrid.Gap;
 
+    /// <summary>卡片内容自然高度（由视图测量填充，-1 表示尚未测量）。行高与画布据此动态计算。</summary>
+    public double NaturalHeight { get; set; } = -1;
+
     /// <summary>尺寸文案，如 1×2。</summary>
     public string SizeLabel => $"{Cols}×{Rows}";
 

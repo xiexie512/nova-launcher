@@ -21,7 +21,7 @@ namespace NovaLauncher.Views;
 public partial class HomeView : UserControl
 {
     private readonly Dictionary<string, Border> _cards = new();
-    private readonly Dictionary<string, ScrollViewer> _cardBodies = new();
+    private readonly Dictionary<string, Border> _cardBodies = new();
     private Point _pressPos;
     private bool _dragArmed;
     private bool _dragActive;
@@ -45,6 +45,8 @@ public partial class HomeView : UserControl
         {
             if (Vm != null) Vm.RefreshHomeDisplay();
             EnsureSetup();
+            // 布局完成后再补一次全量重测：确保字体/控件就绪后卡片自然高度准确（内容完整显示）
+            Dispatcher.UIThread.Post(() => { if (_setup) RelayoutCards(); });
         };
     }
 
@@ -62,11 +64,34 @@ public partial class HomeView : UserControl
                 foreach (PlacedWidget w in e.NewItems) AddCard(w);
             if (e.OldItems != null)
                 foreach (PlacedWidget w in e.OldItems) RemoveCard(w);
+            ScheduleRelayout();
         };
         Vm.AvailableWidgets.CollectionChanged += (_, _) => BuildSidebar();
 
+        // 卡片正文数据变化 → 重新测量自然高度并重排（内容完整显示，不再卡片内滚动）
+        Vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(HomeViewModel.CustomizeOpen)
+                or nameof(HomeViewModel.CalendarWeeks)
+                or nameof(HomeViewModel.CalendarMonth)
+                or nameof(HomeViewModel.TodayPlayedText)
+                or nameof(HomeViewModel.DownloadStatus)
+                or nameof(HomeViewModel.DownloadSourceText)
+                or nameof(HomeViewModel.GreetingLine)
+                or nameof(HomeViewModel.GreetingDate)
+                or nameof(HomeViewModel.AccountName))
+                ScheduleRelayout();
+        };
+        foreach (var col in new System.Collections.Specialized.INotifyCollectionChanged[]
+        {
+            Vm.Instances, Vm.PinnedInstances, Vm.PinnedWorlds, Vm.Servers,
+            Vm.RecentProjects, Vm.Saves, Vm.DownloadVersions,
+        })
+            col.CollectionChanged += (_, _) => ScheduleRelayout();
+
         BuildSidebar();
         foreach (var w in Vm.HomeWidgets) AddCard(w);
+        RelayoutCards();
     }
 
     // ================= 侧边栏 =================
@@ -116,7 +141,12 @@ public partial class HomeView : UserControl
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 2, 0, 0),
         };
-        add.Click += (_, _) => Vm?.AddWidgetFromCatalog(it);
+        // 点「＋ 添加」：未在编辑模式时先进入编辑模式，再添加该组件
+        add.Click += (_, _) =>
+        {
+            if (Vm?.CustomizeOpen != true && Vm != null) Vm.CustomizeOpen = true;
+            Vm?.AddWidgetFromCatalog(it);
+        };
         root.Children.Add(add);
 
         border.Child = root;
@@ -164,10 +194,15 @@ public partial class HomeView : UserControl
                 or nameof(PlacedWidget.W) or nameof(PlacedWidget.H))
                 UpdateGeo(card, w);
             else if (e.PropertyName is nameof(PlacedWidget.Cols) or nameof(PlacedWidget.Rows))
+            {
                 if (_cardBodies.TryGetValue(w.InstanceId, out var body))
-                    body.Content = BuildBody(w); // 尺寸变化 → 重建正文（内容始终完整，空间不足时在卡片内滚动）
+                    body.Child = BuildBody(w); // 尺寸变化 → 重建正文（内容始终完整显示，高度自适应）
+                RelayoutCards();
+            }
         };
         WidgetCanvas.Children.Add(card);
+        MeasureNatural(w, card);
+        if (Vm != null) Vm.RecalcGridGeometry();
         UpdateGeo(card, w);
     }
 
@@ -178,12 +213,48 @@ public partial class HomeView : UserControl
         _cardBodies.Remove(w.InstanceId);
     }
 
-    private static void UpdateGeo(Border card, PlacedWidget w)
+    private void UpdateGeo(Border card, PlacedWidget w)
     {
         Canvas.SetLeft(card, w.X);
-        Canvas.SetTop(card, w.Y);
+        Canvas.SetTop(card, Vm?.RowTop(w.Row) ?? w.Y);
         card.Width = w.W;
-        card.Height = w.H;
+        card.Height = Vm == null ? w.H : Math.Max(0, Vm.RowTop(w.Row + w.Rows) - Vm.RowTop(w.Row));
+    }
+
+    // ================= 卡片高度自适应（内容完整显示，无需卡片内滚动） =================
+
+    /// <summary>测量卡片自然高度（内容完整显示所需高度），写入 w.NaturalHeight。</summary>
+    private void MeasureNatural(PlacedWidget w, Border card)
+    {
+        card.Width = w.W;
+        card.Height = double.NaN; // 临时取消固定高度，让内容决定自然高度
+        card.Measure(new Size(w.W, double.PositiveInfinity));
+        w.NaturalHeight = card.DesiredSize.Height;
+    }
+
+    /// <summary>重新测量所有卡片 → 重算行高与画布高度 → 重新落位。</summary>
+    private void RelayoutCards()
+    {
+        if (Vm == null) return;
+        foreach (var w in Vm.HomeWidgets)
+            if (_cards.TryGetValue(w.InstanceId, out var card))
+                MeasureNatural(w, card);
+        Vm.RecalcGridGeometry();
+        foreach (var w in Vm.HomeWidgets)
+            if (_cards.TryGetValue(w.InstanceId, out var card))
+                UpdateGeo(card, w);
+    }
+
+    private bool _relayoutQueued;
+    private void ScheduleRelayout()
+    {
+        if (_relayoutQueued) return;
+        _relayoutQueued = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            _relayoutQueued = false;
+            RelayoutCards();
+        });
     }
 
     private Border BuildWidgetCard(PlacedWidget w)
@@ -262,9 +333,8 @@ public partial class HomeView : UserControl
         Grid.SetRow(toolbar, 1);
         root.Children.Add(toolbar);
 
-        // ---- 正文 ----
-        var body = new ScrollViewer { Padding = new Thickness(4, 2, 4, 6) };
-        body.Content = BuildBody(w);
+        // ---- 正文（内容始终完整显示：卡片高度随内容自适应，无需滚动） ----
+        var body = new Border { Padding = new Thickness(4, 2, 4, 8), Child = BuildBody(w) };
         _cardBodies[w.InstanceId] = body;
         Grid.SetRow(body, 2);
         root.Children.Add(body);
@@ -316,9 +386,8 @@ public partial class HomeView : UserControl
 
                 // 拖动让位：按被拖卡片左上角落入的槽位，让其余卡片自动避让
                 int stepX = (int)(WidgetGrid.CellW + WidgetGrid.Gap);
-                int stepY = (int)(WidgetGrid.CellH + WidgetGrid.Gap);
                 int col = Math.Clamp((int)Math.Round(left / stepX), 0, WidgetGrid.Columns - w.Cols);
-                int row = Math.Max(0, (int)Math.Round(top / stepY));
+                int row = Vm.RowFromY(Math.Max(0, top));
                 if (!(_avoidTarget is (int Row, int Col) t) || t.Row != row || t.Col != col)
                 {
                     _avoidTarget = (row, col);
@@ -341,10 +410,9 @@ public partial class HomeView : UserControl
             var pos = e.GetPosition(WidgetCanvas);
             if (!PointInCanvas(pos, Vm)) { RevertToCommitted(); return; }
             int stepX = (int)(WidgetGrid.CellW + WidgetGrid.Gap);
-            int stepY = (int)(WidgetGrid.CellH + WidgetGrid.Gap);
             double left = pos.X - _dragOffsetX, top = pos.Y - _dragOffsetY;
             int col = Math.Clamp((int)Math.Round(left / stepX), 0, WidgetGrid.Columns - target.Cols);
-            int row = Math.Max(0, (int)Math.Round(top / stepY));
+            int row = Vm.RowFromY(Math.Max(0, top));
             Vm.ApplyLayout(Vm.ComputeAvoidLayout(target.InstanceId, row, col));
             if (_cards.TryGetValue(target.InstanceId, out var card))
             {
@@ -376,7 +444,7 @@ public partial class HomeView : UserControl
             if (!_cards.TryGetValue(w.InstanceId, out var card)) continue;
             if (!_avoidLayout.TryGetValue(w.InstanceId, out var p)) continue;
             double tx = p.Col * (WidgetGrid.CellW + WidgetGrid.Gap);
-            double ty = p.Row * (WidgetGrid.CellH + WidgetGrid.Gap);
+            double ty = Vm.RowTop(p.Row);
             double cx = Canvas.GetLeft(card), cy = Canvas.GetTop(card);
             if (double.IsNaN(cx)) cx = 0;
             if (double.IsNaN(cy)) cy = 0;
@@ -423,7 +491,7 @@ public partial class HomeView : UserControl
 
     // ================= 各种小组件正文 =================
 
-    /// <summary>卡片正文：内容始终完整显示，不随卡片尺寸裁剪；空间不足时在卡片内滚动查看。</summary>
+    /// <summary>卡片正文：内容始终完整显示，卡片高度随内容自适应，无需卡片内滚动。</summary>
     private Control BuildBody(PlacedWidget w) => w.TypeKey switch
     {
         "greeting" => BodyGreeting(),
@@ -754,7 +822,7 @@ public partial class HomeView : UserControl
         card.Children.Add(title);
         card.Children.Add(body);
         if (info != null)
-            info.BodyChanged += () => body.Text = info.Body;
+            info.BodyChanged += () => { body.Text = info.Body; ScheduleRelayout(); };
         return card;
     }
 

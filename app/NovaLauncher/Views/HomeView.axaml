@@ -26,30 +26,19 @@
     <!-- ===== 编辑模式提示 ===== -->
     <Border Grid.Row="1" Classes="card" IsVisible="{Binding CustomizeOpen}" Margin="0,0,0,12" Padding="14,10">
       <StackPanel Orientation="Horizontal" Spacing="18">
-        <TextBlock Text="编辑模式：从右侧拖拽或点「＋添加」把插件放入网格；每个插件可调 1×1 / 1×2 / 2×1 / 2×2，悬停组件可拖拽移动，点 ✕ 删除。自动保存。"
+        <TextBlock Text="编辑模式：从左侧拖拽或点「＋添加」把插件放入网格；每个插件可调 1×1 / 1×2 / 2×1 / 2×2，悬停组件可拖拽移动，点 ✕ 删除。自动保存。"
                    FontSize="12" Foreground="#7FE08C" VerticalAlignment="Center" TextWrapping="Wrap" />
       </StackPanel>
     </Border>
 
-    <!-- ===== 主内容：左侧网格 + 右侧侧边栏 ===== -->
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-      <ScrollViewer Grid.Column="0">
-        <Border Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource CardBorder}"
-                BorderThickness="1" CornerRadius="12" Padding="10"
-                HorizontalAlignment="Left">
-          <Canvas x:Name="WidgetCanvas"
-                  Width="{Binding GridCanvasWidth}"
-                  Height="{Binding GridCanvasHeight}" />
-        </Border>
-      </ScrollViewer>
-
-      <!-- 侧边栏：可添加的插件 / 小组件 -->
-      <Border Grid.Column="1" Width="250" Classes="card" Padding="14"
-              IsVisible="{Binding CustomizeOpen}">
+    <!-- ===== 主内容：左侧侧边栏 + 右侧网格 ===== -->
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+      <!-- 侧边栏：可添加的插件 / 小组件（仅编辑主页模式显示，位于最左侧；隐藏时 Auto 列自动收拢） -->
+      <Border Grid.Column="0" Width="250" Classes="card" Padding="14" IsVisible="{Binding CustomizeOpen}">
         <ScrollViewer>
           <StackPanel Spacing="6">
             <TextBlock Text="插件 / 小组件" FontSize="14" FontWeight="SemiBold" />
-            <TextBlock Text="从侧边拿出插件放到网格（拖拽或点 ＋）" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+            <TextBlock Text="点「＋ 添加」把组件放入主页；编辑模式可拖拽调整位置与尺寸" Classes="muted" FontSize="11" TextWrapping="Wrap" />
             <Border Height="1" Background="{DynamicResource CardBorder}" Margin="0,4,0,4" />
             <ItemsControl x:Name="SidebarItems" ItemsSource="{Binding AvailableWidgets}">
               <ItemsControl.ItemsPanel>
@@ -59,6 +48,16 @@
           </StackPanel>
         </ScrollViewer>
       </Border>
+
+      <ScrollViewer Grid.Column="1">
+        <Border Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource CardBorder}"
+                BorderThickness="1" CornerRadius="12" Padding="10"
+                HorizontalAlignment="Left">
+          <Canvas x:Name="WidgetCanvas"
+                  Width="{Binding GridCanvasWidth}"
+                  Height="{Binding GridCanvasHeight}" />
+        </Border>
+      </ScrollViewer>
     </Grid>
   </Grid>
 </UserControl>

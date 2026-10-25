@@ -709,6 +709,32 @@ public sealed partial class HomeViewModel : ObservableObject
     public double GridCanvasWidth => WidgetGrid.CanvasWidth;
     public double GridCanvasHeight { get; private set; } = 6 * (WidgetGrid.CellH + WidgetGrid.Gap);
 
+    /// <summary>每行的实际高度（由卡片自然高度决定，至少一格高）。</summary>
+    public double[] RowHeights { get; private set; } = Array.Empty<double>();
+
+    /// <summary>第 row 行顶部的 Y 坐标（按动态行高累计）。</summary>
+    public double RowTop(int row)
+    {
+        if (row <= 0 || RowHeights.Length == 0) return 0;
+        double acc = 0;
+        for (int i = 0; i < row && i < RowHeights.Length; i++) acc += RowHeights[i] + WidgetGrid.Gap;
+        return acc;
+    }
+
+    /// <summary>由画布内 Y 坐标反查所在行（供拖拽定位用，行高不再均匀）。</summary>
+    public int RowFromY(double top)
+    {
+        if (RowHeights.Length == 0) return 0;
+        double acc = 0;
+        for (int r = 0; r < RowHeights.Length; r++)
+        {
+            double span = RowHeights[r] + WidgetGrid.Gap;
+            if (top < acc + span) return r;
+            acc += span;
+        }
+        return RowHeights.Length - 1;
+    }
+
     // ---- 时钟小组件 ----
     private Avalonia.Threading.DispatcherTimer? _clockTimer;
     public string ClockNow { get; private set; } = "";
@@ -804,7 +830,7 @@ public sealed partial class HomeViewModel : ObservableObject
         };
         Occupy(w);
         HomeWidgets.Add(w);
-        RefreshGridHeight();
+        RecalcGridGeometry();
         SaveLayout();
         return true;
     }
@@ -814,7 +840,7 @@ public sealed partial class HomeViewModel : ObservableObject
         if (w == null || !HomeWidgets.Contains(w)) return;
         Free(w);
         HomeWidgets.Remove(w);
-        RefreshGridHeight();
+        RecalcGridGeometry();
         SaveLayout();
     }
 
@@ -836,7 +862,7 @@ public sealed partial class HomeViewModel : ObservableObject
             if (found == null) { Occupy(w); return; }
             w.Cols = cols; w.Rows = rows; w.Row = found.Value.row; w.Col = found.Value.col; Occupy(w);
         }
-        RefreshGridHeight();
+        RecalcGridGeometry();
         SaveLayout();
     }
 
@@ -856,7 +882,7 @@ public sealed partial class HomeViewModel : ObservableObject
             if (found == null) { Occupy(w); return; }
             w.Row = found.Value.row; w.Col = found.Value.col; Occupy(w);
         }
-        RefreshGridHeight();
+        RecalcGridGeometry();
         SaveLayout();
     }
 
@@ -912,7 +938,7 @@ public sealed partial class HomeViewModel : ObservableObject
             maxRow = Math.Max(maxRow, w.Row + w.Rows);
         }
         _maxRows = Math.Max(_maxRows, maxRow);
-        RefreshGridHeight();
+        RecalcGridGeometry();
         SaveLayout();
         OnPropertyChanged(nameof(HomeWidgets));
     }
@@ -982,12 +1008,36 @@ public sealed partial class HomeViewModel : ObservableObject
             _cellOwner.Remove((r, c));
     }
 
-    private void RefreshGridHeight()
+    /// <summary>
+    /// 重算网格几何：每行高度取该行卡片自然高度的最大值（跨行卡片按行均摊，至少一格高），
+    /// 画布高度按行累计 —— 卡片始终完整显示，无需在卡片内滚动。
+    /// </summary>
+    public void RecalcGridGeometry()
     {
         int maxRow = 0;
         foreach (var w in HomeWidgets) maxRow = Math.Max(maxRow, w.Row + w.Rows);
-        GridCanvasHeight = Math.Max(4, maxRow) * (WidgetGrid.CellH + WidgetGrid.Gap);
-        OnPropertyChanged(nameof(GridCanvasHeight));
+        // 行数随内容收缩（保留 2 行编辑余量，至少 6 行），删除卡片后画布高度同步变小，不再留大片空白
+        _maxRows = Math.Max(6, maxRow + 2);
+
+        var rowH = new double[_maxRows];
+        for (int r = 0; r < _maxRows; r++) rowH[r] = WidgetGrid.CellH;
+        foreach (var w in HomeWidgets)
+        {
+            double per = (w.NaturalHeight > 0 ? w.NaturalHeight : w.H) / Math.Max(1, w.Rows);
+            for (int r = w.Row; r < w.Row + w.Rows && r < rowH.Length; r++)
+                rowH[r] = Math.Max(rowH[r], per);
+        }
+        RowHeights = rowH;
+
+        double total = 0;
+        for (int r = 0; r < _maxRows; r++) total += rowH[r];
+        total += Math.Max(0, _maxRows - 1) * WidgetGrid.Gap;
+        double newH = Math.Max(total, 4 * (WidgetGrid.CellH + WidgetGrid.Gap));
+        if (Math.Abs(newH - GridCanvasHeight) > 0.5)
+        {
+            GridCanvasHeight = newH;
+            OnPropertyChanged(nameof(GridCanvasHeight));
+        }
     }
 
     // ---------- 布局持久化 ----------
@@ -1027,7 +1077,7 @@ public sealed partial class HomeViewModel : ObservableObject
             Occupy(w);
             HomeWidgets.Add(w);
         }
-        RefreshGridHeight();
+        RecalcGridGeometry();
         OnPropertyChanged(nameof(HomeWidgets));
     }
 

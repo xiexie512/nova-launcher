@@ -25,12 +25,12 @@
 
   <Grid>
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="230" />
+      <ColumnDefinition Width="Auto" />
       <ColumnDefinition Width="*" />
     </Grid.ColumnDefinitions>
 
-    <!-- 左侧导航 -->
-    <Border Grid.Column="0" Background="#12151B">
+    <!-- 左侧导航（编辑主页模式时隐藏，宽度为 Auto 以随隐藏自动收拢） -->
+    <Border Grid.Column="0" Width="230" Background="#12151B" IsVisible="{Binding NavVisible}">
       <Grid RowDefinitions="Auto,Auto,*,Auto">
         <StackPanel Grid.Row="0" Margin="20,24,20,18" Spacing="6">
           <TextBlock Text="NovaLauncher" FontSize="22" FontWeight="Bold" Foreground="#7FE08C" />
