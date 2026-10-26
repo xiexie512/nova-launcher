@@ -37,7 +37,7 @@
 
 | 平台 | 安装包 | 说明 |
 |---|---|---|
-| macOS（Apple 芯片） | `NovaLauncher-1.0.0-arm64.dmg` | 双击 dmg → 拖入「应用程序」 |
+| macOS（Apple 芯片） | `NovaLauncher-1.0.1-arm64.dmg` | 双击 dmg → 拖入「应用程序」 |
 | Windows 10/11 x64 | `NovaLauncher-win-x64-Setup.exe` | 单文件绿色版，双击即用（自包含 .NET 运行时） |
 | Windows 便携版 | `NovaLauncher-win-x64-portable.zip` | 解压后双击 `NovaLauncher.exe` |
 
