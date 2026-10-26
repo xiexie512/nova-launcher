@@ -21,7 +21,7 @@ public static class WidgetCatalog
         new() { TypeKey = "servers",         Title = "固定的服务器", Icon = "🖥", Description = "在线人数与连接",     DefaultCols = 1, DefaultRows = 2 },
         new() { TypeKey = "recent",          Title = "最近项目",     Icon = "🕘", Description = "最近游玩与服务器",   DefaultCols = 2, DefaultRows = 1 },
         new() { TypeKey = "versions",        Title = "版本下载",     Icon = "⬇", Description = "下载并启动游戏版本", DefaultCols = 2, DefaultRows = 2 },
-        new() { TypeKey = "lan",             Title = "虚拟局域网",   Icon = "🛰", Description = "ZeroTier 虚拟内网",  DefaultCols = 1, DefaultRows = 1 },
+        new() { TypeKey = "lan",             Title = "虚拟局域网",   Icon = "🛰", Description = "NovaNet 自研虚拟内网",  DefaultCols = 1, DefaultRows = 1 },
         new() { TypeKey = "saves",           Title = "我的存档",     Icon = "🗃", Description = "浏览与管理存档",     DefaultCols = 1, DefaultRows = 2 },
         new() { TypeKey = "monitor",         Title = "性能监控",     Icon = "📊", Description = "游戏 CPU / 内存实时监控", DefaultCols = 2, DefaultRows = 1 },
     };

@@ -28,10 +28,6 @@ if [ -f "$ROOT/app/plugins/CDemo/build/c_demo.dll" ]; then
   cp "$ROOT/app/plugins/CDemo/build/c_demo.dll" "$ROOT/dist/win/publish/plugins/"
 fi
 
-echo "[2.5/4] 内置 ZeroTier 安装包（虚拟局域网离线可用）..."
-mkdir -p "$ROOT/dist/win/publish/installers"
-cp "$ROOT/assets/installers/ZeroTier-One.msi" "$ROOT/dist/win/publish/installers/"
-
 echo "[3/4] 制作便携版 zip..."
 cd "$ROOT/dist/win/publish"
 rm -f "$ROOT/dist/NovaLauncher-win-x64-portable.zip"

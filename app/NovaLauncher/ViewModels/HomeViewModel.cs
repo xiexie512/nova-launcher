@@ -4,11 +4,13 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NovaLauncher.Models;
 using NovaLauncher.PluginApi;
 using NovaLauncher.Services;
+using NovaNet.Engine;
 
 namespace NovaLauncher.ViewModels;
 
@@ -272,9 +274,9 @@ public sealed partial class HomeViewModel : ObservableObject
         }
     }
 
-    // ---------- 虚拟局域网（ZeroTier 集成） ----------
-    private string _lanStatus = "未检测";
-    private string _lanIp = "尚未分配";
+    // ---------- 虚拟局域网（NovaNet 自研） ----------
+    private string _lanStatus = "未配置 Hub";
+    private string _lanIp = "尚未加入房间";
     private bool _lanInstalled;
 
     public string LanStatus { get => _lanStatus; set => SetProperty(ref _lanStatus, value); }
@@ -289,32 +291,67 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private void RefreshLanSync()
     {
-        try
+        // NovaNet：状态由引擎事件实时驱动，这里仅做一次性兜底同步
+        var engine = NovaNetService.Engine;
+        var configured = NovaNetService.IsConfigured;
+        Dispatcher.UIThread.Post(() =>
         {
-            ZeroTierService.Detect();
-            var installed = ZeroTierService.IsInstalled;
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            LanInstalled = configured;
+            if (!configured)
             {
-                LanInstalled = installed;
-                if (!installed)
+                LanStatus = "未配置 Hub 地址";
+                LanIp = "未配置";
+                LogService.Info("[虚拟局域网] 未配置 NovaNet Hub，可在「虚拟局域网」页填写地址后连接");
+                return;
+            }
+            var room = engine.Room;
+            var members = engine.Members.Count;
+            LanStatus = engine.State switch
+            {
+                NnState.Online => room != null ? $"NovaNet 已连接 · 房间 {room.Code}" : "NovaNet 已连接 · 未进房间",
+                NnState.Connecting => "NovaNet 连接中…",
+                NnState.Reconnecting => "NovaNet 重连中…",
+                _ => "NovaNet 未连接",
+            };
+            if (room != null)
+            {
+                LanStatus = $"NovaNet · 房间 {room.Code} · {members} 人";
+                LanIp = room.MyVirtualIp;
+            }
+            else
+            {
+                LanIp = engine.MyVirtualIp.Length > 0 ? engine.MyVirtualIp : "未加入房间";
+            }
+            LogService.Info($"[虚拟局域网] {LanStatus} · 虚拟 IP {LanIp}");
+        });
+
+        // 引擎状态变化时同步更新主页卡片
+        NovaNetService.StateChanged += (st, _) =>
+            Dispatcher.UIThread.Post(() =>
+            {
+                LanStatus = st switch
                 {
-                    LanStatus = "未安装虚拟局域网引擎";
-                    LanIp = "未安装";
-                    LogService.Info("[虚拟局域网] 未检测到 ZeroTier，可在「虚拟局域网」页一键安装");
-                    return;
-                }
-                try
-                {
-                    var info = ZeroTierService.GetInfo();
-                    LanStatus = info.Online ? $"ZeroTier {info.Version} · 已连接" : "引擎离线";
-                    var ip = ZeroTierService.MyVirtualIp();
-                    LanIp = string.IsNullOrEmpty(ip) ? "尚未分配" : ip;
-                    LogService.Info($"[虚拟局域网] {LanStatus} · 虚拟 IP {LanIp} · 节点 {info.NodeId}");
-                }
-                catch { LanStatus = "引擎读取失败"; }
+                    NnState.Online => engine.Room != null ? $"NovaNet · 房间 {engine.Room.Code} · {engine.Members.Count} 人" : "NovaNet 已连接",
+                    NnState.Connecting => "NovaNet 连接中…",
+                    NnState.Reconnecting => "NovaNet 重连中…",
+                    _ => "NovaNet 未连接",
+                };
+                if (engine.Room != null) LanIp = engine.Room.MyVirtualIp;
             });
-        }
-        catch { }
+        NovaNetService.RoomChanged += room =>
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (room == null)
+                {
+                    LanStatus = "NovaNet 已连接 · 未进房间";
+                    LanIp = "未加入房间";
+                }
+                else
+                {
+                    LanStatus = $"NovaNet · 房间 {room.Code} · {engine.Members.Count} 人";
+                    LanIp = room.MyVirtualIp;
+                }
+            });
     }
 
     // ---------- 版本下载（主页卡片） ----------

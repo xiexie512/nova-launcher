@@ -37,6 +37,12 @@
                 <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.OpenDirCommand}" CommandParameter="{Binding Id}">
                   <TextBlock Text="打开目录" />
                 </Button>
+                <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.OpenModsDirCommand}" CommandParameter="{Binding Id}">
+                  <TextBlock Text="mods 目录" />
+                </Button>
+                <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.ExportInstanceCommand}" CommandParameter="{Binding Id}">
+                  <TextBlock Text="导出实例包" />
+                </Button>
                 <Button Classes="danger" Command="{Binding $parent[ListBox].DataContext.DeleteCommand}" CommandParameter="{Binding Id}">
                   <TextBlock Text="删除" />
                 </Button>

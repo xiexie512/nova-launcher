@@ -1,275 +1,247 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NovaLauncher.Services;
+using NovaNet.Engine;
 
 namespace NovaLauncher.ViewModels;
 
-/// <summary>虚拟局域网页：驱动 ZeroTier，显示引擎状态、已加入网络、虚拟 IP，支持加入/离开网络。</summary>
+/// <summary>
+/// 虚拟局域网页：驱动自研 NovaNet（Hub 信令 + UDP 打洞直连 + 中继回退 + 本地端口映射）。
+/// 建房/加入房间（房间码 + 密码）→ 成员互见虚拟 IP → 隧道打通 → 在游戏内添加服务器 127.0.0.1:200xx。
+/// </summary>
 public sealed partial class LanViewModel : ObservableObject
 {
-    private string _networkIdInput = "";
-    private string _statusText = "";
-    private string _engineStatus = "未检测";
-    private string _engineVersion = "-";
-    private string _nodeId = "-";
-    private string _myIp = "尚未分配";
-    private bool _installed;
+    private string _hubAddress = "";
+    private string _localGamePortText = "25565";
+    private string _connectionStatus = "未连接";
+    private string _clientId = "-";
+    private string _roomName = "-";
+    private string _roomCode = "-";
+    private string _myVirtualIp = "尚未分配";
+    private bool _inRoom;
+    private bool _isOwner;
     private bool _busy;
     private string _lastMessage = "";
+    private string _createName = "";
+    private string _createPassword = "";
+    private string _joinCode = "";
+    private string _joinPassword = "";
 
-    public ObservableCollection<ZtNetworkInfo> Networks { get; } = new();
-
-    public string NetworkIdInput { get => _networkIdInput; set => SetProperty(ref _networkIdInput, value); }
-    public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
-    public string EngineStatus { get => _engineStatus; set => SetProperty(ref _engineStatus, value); }
-    public string EngineVersion { get => _engineVersion; set => SetProperty(ref _engineVersion, value); }
-    public string NodeId { get => _nodeId; set => SetProperty(ref _nodeId, value); }
-    public string MyIp { get => _myIp; set => SetProperty(ref _myIp, value); }
-    public bool Installed { get => _installed; set { SetProperty(ref _installed, value); OnPropertyChanged(nameof(NotInstalled)); } }
-    public bool NotInstalled => !Installed;
-    public bool Busy { get => _busy; set { SetProperty(ref _busy, value); OnPropertyChanged(nameof(NotBusy)); } }
-    public bool NotBusy => !Busy;
-    public string LastMessage { get => _lastMessage; set => SetProperty(ref _lastMessage, value); }
-    public bool HasNetworks => Networks.Count > 0;
-    public string InstallerUrl => ZeroTierService.InstallerUrl;
-    /// <summary>当前电脑匹配的 ZeroTier 平台信息（操作系统 · 架构），用于「按电脑版本下载」提示。</summary>
-    public string PlatformText => $"{ZeroTierService.OsLabel} · {ZeroTierService.ArchLabel}";
+    public ObservableCollection<NnMember> Members { get; } = new();
 
     public LanViewModel()
     {
-        TokenInput = SettingsService.S.ZeroTierToken;
-        _ = RefreshAsync();
-        if (ZeroTierAdminService.HasToken) _ = RefreshAdminAsync();
+        var s = SettingsService.S;
+        HubAddress = s.NovaNetServer;
+        LocalGamePortText = (s.NovaNetLocalGamePort > 0 ? s.NovaNetLocalGamePort : 25565).ToString();
+        NovaNetService.StateChanged += (st, msg) => Dispatcher.UIThread.Post(() => ApplyState(st, msg));
+        NovaNetService.RoomChanged += room => Dispatcher.UIThread.Post(() => ApplyRoom(room));
+        NovaNetService.MembersChanged += ms => Dispatcher.UIThread.Post(() => SyncMembers(ms));
+        NovaNetService.Kicked += reason => Dispatcher.UIThread.Post(() => LastMessage = $"你已被房主移出房间：{reason}");
+        NovaNetService.Log += m => Dispatcher.UIThread.Post(() => LastMessage = m);
+        NovaNetService.Start();
+        ApplyState(NovaNetService.Engine.State, "");
+        ApplyRoom(NovaNetService.Engine.Room);
+        SyncMembers(NovaNetService.Engine.Members);
     }
 
-    [RelayCommand]
-    private Task RefreshAsync() => Task.Run(() =>
+    // ================= 连接配置 =================
+
+    public string HubAddress { get => _hubAddress; set => SetProperty(ref _hubAddress, value); }
+    public string LocalGamePortText { get => _localGamePortText; set => SetProperty(ref _localGamePortText, value); }
+
+    public string ConnectionStatus { get => _connectionStatus; set => SetProperty(ref _connectionStatus, value); }
+    public string ClientId { get => _clientId; set => SetProperty(ref _clientId, value); }
+
+    public string RoomName { get => _roomName; set => SetProperty(ref _roomName, value); }
+    public string RoomCode { get => _roomCode; set => SetProperty(ref _roomCode, value); }
+    public string MyVirtualIp { get => _myVirtualIp; set => SetProperty(ref _myVirtualIp, value); }
+
+    public bool InRoom { get => _inRoom; set { SetProperty(ref _inRoom, value); OnPropertyChanged(nameof(NotInRoom)); } }
+    public bool NotInRoom => !InRoom;
+    public bool IsOwner { get => _isOwner; set { SetProperty(ref _isOwner, value); OnPropertyChanged(nameof(CanKick)); } }
+    public bool CanKick => IsOwner;
+    public bool Busy { get => _busy; set { SetProperty(ref _busy, value); OnPropertyChanged(nameof(NotBusy)); } }
+    public bool NotBusy => !Busy;
+    public string LastMessage { get => _lastMessage; set => SetProperty(ref _lastMessage, value); }
+    public bool HasMembers => Members.Count > 0;
+    public string ConnectedAtText => "NovaNet 自研虚拟局域网";
+
+    public string CreateName { get => _createName; set => SetProperty(ref _createName, value); }
+    public string CreatePassword { get => _createPassword; set => SetProperty(ref _createPassword, value); }
+    public string JoinCode { get => _joinCode; set => SetProperty(ref _joinCode, value); }
+    public string JoinPassword { get => _joinPassword; set => SetProperty(ref _joinPassword, value); }
+
+    private void ApplyState(NnState st, string msg)
     {
-        string status, engine = "未安装", ver = "-", node = "-", ip = "未安装", msg = "";
-        bool installed;
-        var nets = new List<ZtNetworkInfo>();
-        try
+        ConnectionStatus = st switch
         {
-            ZeroTierService.Detect();
-            installed = ZeroTierService.IsInstalled;
-            if (!installed)
-            {
-                status = "未检测到虚拟局域网引擎 ZeroTier";
-            }
-            else
-            {
-                var info = ZeroTierService.GetInfo();
-                engine = info.Online ? "已连接" : "离线";
-                ver = info.Version;
-                node = info.NodeId;
-                nets = ZeroTierService.GetNetworks();
-                var myIp = ZeroTierService.MyVirtualIp();
-                ip = string.IsNullOrEmpty(myIp) ? "尚未分配" : myIp;
-                status = nets.Count > 0
-                    ? $"已加入 {nets.Count} 个虚拟局域网" + (string.IsNullOrEmpty(myIp) ? "" : $" · 虚拟 IP {myIp}")
-                    : "引擎运行中，尚未加入任何网络";
-            }
+            NnState.Stopped => string.IsNullOrWhiteSpace(HubAddress) ? "未配置 Hub 地址" : "已停止",
+            NnState.Connecting => "连接中…",
+            NnState.Online => "已连接",
+            NnState.Reconnecting => "连接断开，自动重连中…",
+            _ => st.ToString(),
+        };
+        ClientId = NovaNetService.Engine.Config.ClientId;
+        if (string.IsNullOrEmpty(ClientId)) ClientId = "-";
+        if (!string.IsNullOrEmpty(msg)) LastMessage = msg;
+    }
+
+    private void ApplyRoom(NnRoom? room)
+    {
+        if (room == null)
+        {
+            InRoom = false;
+            IsOwner = false;
+            RoomName = "-";
+            RoomCode = "-";
+            MyVirtualIp = "尚未分配";
+            Members.Clear();
+            OnPropertyChanged(nameof(HasMembers));
+            return;
         }
-        catch (Exception e)
-        {
-            installed = true;
-            engine = "已安装";
-            status = "读取引擎信息失败：" + e.Message;
-            msg = ZeroTierService.LastError ?? e.Message;
-        }
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            Busy = true;
-            try
-            {
-                Installed = installed;
-                EngineStatus = engine;
-                EngineVersion = ver;
-                NodeId = node;
-                MyIp = ip;
-                StatusText = status;
-                LastMessage = msg;
-                Networks.Clear();
-                foreach (var n in nets) Networks.Add(n);
-                OnPropertyChanged(nameof(HasNetworks));
-            }
-            finally { Busy = false; }
-        });
-    });
+        InRoom = true;
+        IsOwner = room.IsOwner;
+        RoomName = room.Name;
+        RoomCode = room.Code;
+        MyVirtualIp = room.MyVirtualIp;
+    }
+
+    private void SyncMembers(System.Collections.Generic.IReadOnlyList<NnMember> ms)
+    {
+        Members.Clear();
+        foreach (var m in ms.OrderBy(x => x.VirtualIp)) Members.Add(m);
+        OnPropertyChanged(nameof(HasMembers));
+    }
+
+    // ================= 命令 =================
 
     [RelayCommand]
-    private async Task JoinAsync()
+    private async Task ConnectAsync()
     {
-        var id = NetworkIdInput.Trim();
-        if (id.Length == 0) { LastMessage = "请输入 16 位网络 ID（在 my.zerotier.com 创建网络后可见）"; return; }
+        var addr = HubAddress.Trim();
+        if (addr.Length == 0) { LastMessage = "请填写 Hub 服务器地址（例如 hub.example.com:8535）"; return; }
+        if (!int.TryParse(LocalGamePortText.Trim(), out var port) || port <= 0 || port > 65535)
+        { LastMessage = "本地游戏端口无效（1-65535，Minecraft 默认 25565）"; return; }
         Busy = true;
         LastMessage = "";
         try
         {
-            ZeroTierService.JoinNetwork(id);
-            LastMessage = $"已请求加入网络 {id}。若需通过认证，请到 my.zerotier.com 的成员列表勾选 Auth。";
-            NetworkIdInput = "";
-            await RefreshAsync();
+            NovaNetService.ConfigureAndConnect(addr, port);
+            await Task.Delay(200);
+            LastMessage = $"已保存并连接 {NovaNetService.ToWsAddress(addr)}，本地游戏端口 {port}";
+        }
+        catch (Exception e) { LastMessage = "连接失败：" + e.Message; }
+        finally { Busy = false; }
+    }
+
+    [RelayCommand]
+    private Task ReconnectAsync()
+    {
+        Busy = true;
+        LastMessage = "";
+        try
+        {
+            NovaNetService.Reconnect();
+            LastMessage = "已重连";
+        }
+        catch (Exception e) { LastMessage = "重连失败：" + e.Message; }
+        finally { Busy = false; }
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private async Task CreateRoomAsync()
+    {
+        var name = CreateName.Trim();
+        if (name.Length == 0) name = NovaNetService.DisplayName(SettingsService.S) + " 的房间";
+        if (name.Length > 32) name = name[..32];
+        Busy = true;
+        LastMessage = "";
+        try
+        {
+            var engine = NovaNetService.Engine;
+            if (engine.State == NnState.Stopped) engine.Start();
+            var code = await engine.CreateRoomAsync(name, string.IsNullOrWhiteSpace(CreatePassword) ? null : CreatePassword.Trim());
+            NovaNetService.SaveLastRoom(code, string.IsNullOrWhiteSpace(CreatePassword) ? null : CreatePassword.Trim());
+            LastMessage = $"房间已创建，房间码 {code}。把房间码（和密码）发给好友，让他们在「加入房间」里输入即可。";
+            CreateName = "";
+            CreatePassword = "";
+        }
+        catch (Exception e) { LastMessage = "创建房间失败：" + e.Message; }
+        finally { Busy = false; }
+    }
+
+    [RelayCommand]
+    private async Task JoinRoomAsync()
+    {
+        var code = JoinCode.Trim().ToUpperInvariant();
+        if (code.Length != 6) { LastMessage = "房间码是 6 位，请向房主确认（例如 AB12CD）"; return; }
+        Busy = true;
+        LastMessage = "";
+        try
+        {
+            var engine = NovaNetService.Engine;
+            if (engine.State == NnState.Stopped) engine.Start();
+            await engine.JoinRoomAsync(code, string.IsNullOrWhiteSpace(JoinPassword) ? null : JoinPassword.Trim());
+            NovaNetService.SaveLastRoom(code, string.IsNullOrWhiteSpace(JoinPassword) ? null : JoinPassword.Trim());
+            LastMessage = $"已加入房间 {code}。等待隧道打通后，在游戏「多人游戏→添加服务器」输入好友的联机地址即可。";
+            JoinCode = "";
+            JoinPassword = "";
         }
         catch (Exception e) { LastMessage = "加入失败：" + e.Message; }
         finally { Busy = false; }
     }
 
     [RelayCommand]
-    private async Task LeaveAsync(string id)
+    private async Task LeaveRoomAsync()
     {
         Busy = true;
+        LastMessage = "";
         try
         {
-            ZeroTierService.LeaveNetwork(id);
-            LastMessage = $"已离开网络 {id}";
-            await RefreshAsync();
+            await NovaNetService.Engine.LeaveRoomAsync();
+            NovaNetService.ClearLastRoom();
+            LastMessage = "已离开房间";
         }
         catch (Exception e) { LastMessage = "操作失败：" + e.Message; }
         finally { Busy = false; }
     }
 
     [RelayCommand]
-    private async Task InstallAsync()
+    private async Task KickAsync(NnMember member)
     {
+        if (!IsOwner) return;
         Busy = true;
-        LastMessage = $"正在下载官方安装包（{ZeroTierService.OsLabel} / {ZeroTierService.ArchLabel}，约 30MB）…";
         try
         {
-            var path = await ZeroTierService.DownloadAndOpenInstallerAsync();
-            LastMessage = $"已按当前电脑（{ZeroTierService.OsLabel} / {ZeroTierService.ArchLabel}）匹配安装包并打开：{path}\n请按系统向导完成安装，然后回到本页点击「刷新」。";
+            await NovaNetService.Engine.KickAsync(member.MemberId);
+            LastMessage = $"已将 {member.Name} 移出房间";
         }
-        catch (Exception e) { LastMessage = "下载失败：" + e.Message; }
+        catch (Exception e) { LastMessage = "操作失败：" + e.Message; }
         finally { Busy = false; }
     }
 
-    // ============ 后台管理（Central 成员授权） ============
-
-    private string _tokenInput = "";
-    private bool _adminBusy;
-    private string _adminMessage = "";
-    private ZtAdminNetwork? _selectedNetwork;
-
-    public ObservableCollection<ZtAdminNetwork> AdminNetworks { get; } = new();
-    public ObservableCollection<ZtAdminMember> Members { get; } = new();
-
-    public string TokenInput { get => _tokenInput; set => SetProperty(ref _tokenInput, value); }
-    public bool AdminBusy { get => _adminBusy; set { SetProperty(ref _adminBusy, value); OnPropertyChanged(nameof(NotAdminBusy)); } }
-    public bool NotAdminBusy => !AdminBusy;
-    public string AdminMessage { get => _adminMessage; set => SetProperty(ref _adminMessage, value); }
-    public bool HasToken => ZeroTierAdminService.HasToken;
-    public bool NoToken => !HasToken;
-    public bool HasMembers => Members.Count > 0;
-
-    public ZtAdminNetwork? SelectedNetwork
+    [RelayCommand]
+    private async Task CopyMyIpAsync()
     {
-        get => _selectedNetwork;
-        set
-        {
-            if (SetProperty(ref _selectedNetwork, value) && value != null)
-                _ = LoadMembersAsync(value.Id);
-        }
+        if (MyVirtualIp.StartsWith("尚未")) { LastMessage = "加入房间后才能看到虚拟 IP"; return; }
+        var top = Avalonia.Controls.TopLevel.GetTopLevel(Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime l ? l.MainWindow : null);
+        if (top?.Clipboard != null) await top.Clipboard.SetTextAsync(MyVirtualIp);
+        LastMessage = $"已复制虚拟 IP {MyVirtualIp}，对方在游戏内添加服务器时填写这个地址（连不上就改用对方的联机地址 127.0.0.1:200xx）";
     }
 
     [RelayCommand]
-    private async Task SaveTokenAsync()
+    private async Task CopyMemberAddressAsync(NnMember member)
     {
-        var t = TokenInput.Trim();
-        if (t.Length == 0) { AdminMessage = "请先粘贴 API Token（my.zerotier.com → Account 页面生成）"; return; }
-        AdminBusy = true;
-        AdminMessage = "";
-        try
-        {
-            ZeroTierAdminService.SaveToken(t);
-            OnPropertyChanged(nameof(HasToken));
-            OnPropertyChanged(nameof(NoToken));
-            await RefreshAdminAsync();
-            AdminMessage = "Token 已保存，网络列表已加载";
-        }
-        catch (Exception e) { AdminMessage = "Token 校验失败：" + e.Message; }
-        finally { AdminBusy = false; }
+        if (string.IsNullOrEmpty(member.ConnectAddress)) { LastMessage = "对方映射端口尚未就绪，稍等片刻再试"; return; }
+        var top = Avalonia.Controls.TopLevel.GetTopLevel(Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime l ? l.MainWindow : null);
+        if (top?.Clipboard != null) await top.Clipboard.SetTextAsync(member.ConnectAddress);
+        LastMessage = $"已复制 {member.Name} 的联机地址 {member.ConnectAddress}，在游戏「多人游戏→添加服务器」粘贴即可";
     }
-
-    [RelayCommand]
-    private async Task RefreshAdminAsync()
-    {
-        if (!ZeroTierAdminService.HasToken) return;
-        AdminBusy = true;
-        AdminMessage = "";
-        try
-        {
-            var nets = await ZeroTierAdminService.GetNetworksAsync();
-            var prev = SelectedNetwork?.Id;
-            AdminNetworks.Clear();
-            foreach (var n in nets) AdminNetworks.Add(n);
-            SelectedNetwork = (prev != null ? AdminNetworks.FirstOrDefault(n => n.Id == prev) : null)
-                              ?? AdminNetworks.FirstOrDefault();
-            if (SelectedNetwork == null)
-            {
-                Members.Clear();
-                OnPropertyChanged(nameof(HasMembers));
-                AdminMessage = "该账号下暂无网络";
-            }
-        }
-        catch (Exception e) { AdminMessage = "加载网络失败：" + e.Message; }
-        finally { AdminBusy = false; }
-    }
-
-    private async Task LoadMembersAsync(string networkId)
-    {
-        AdminBusy = true;
-        AdminMessage = "";
-        try
-        {
-            var ms = await ZeroTierAdminService.GetMembersAsync(networkId);
-            Members.Clear();
-            foreach (var m in ms) Members.Add(m);
-            OnPropertyChanged(nameof(HasMembers));
-            if (ms.Count == 0) AdminMessage = "该网络暂无成员（新设备加入并请求授权后才会出现）";
-        }
-        catch (Exception e) { AdminMessage = "加载成员失败：" + e.Message; }
-        finally { AdminBusy = false; }
-    }
-
-    [RelayCommand]
-    private async Task ToggleAuthAsync(ZtAdminMember member)
-    {
-        if (SelectedNetwork == null) return;
-        AdminBusy = true;
-        AdminMessage = "";
-        try
-        {
-            await ZeroTierAdminService.SetAuthorizedAsync(SelectedNetwork.Id, member.NodeId, !member.Authorized);
-            AdminMessage = member.Authorized ? $"已取消授权 {member.DisplayName}" : $"已授权 {member.DisplayName}，设备可立即接入";
-            await LoadMembersAsync(SelectedNetwork.Id);
-        }
-        catch (Exception e) { AdminMessage = "操作失败：" + e.Message; }
-        finally { AdminBusy = false; }
-    }
-
-    [RelayCommand]
-    private async Task RemoveMemberAsync(ZtAdminMember member)
-    {
-        if (SelectedNetwork == null) return;
-        AdminBusy = true;
-        AdminMessage = "";
-        try
-        {
-            await ZeroTierAdminService.RemoveMemberAsync(SelectedNetwork.Id, member.NodeId);
-            AdminMessage = $"已移除成员 {member.DisplayName}（设备需重新 join 才能回来）";
-            await LoadMembersAsync(SelectedNetwork.Id);
-        }
-        catch (Exception e) { AdminMessage = "移除失败：" + e.Message; }
-        finally { AdminBusy = false; }
-    }
-
-    [RelayCommand]
-    private void OpenAccountPage() =>
-        Process.Start(new ProcessStartInfo { FileName = "https://my.zerotier.com/account", UseShellExecute = true });
 }

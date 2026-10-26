@@ -24,6 +24,8 @@
   <ItemGroup>
     <ProjectReference Include="../NovaLauncher.PluginApi/NovaLauncher.PluginApi.csproj" />
     <ProjectReference Include="../NovaLauncher.PluginHosting/NovaLauncher.PluginHosting.csproj" />
+    <!-- 自研 NovaNet 虚拟局域网协议引擎（与 Hub 服务端共用同一份协议源码，杜绝协议漂移） -->
+    <ProjectReference Include="../NovaNet.Engine/NovaNet.Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,14 +36,5 @@
     <None Include="Native/nova_kernel.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))" Link="nova_kernel.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <!-- 内置 ZeroTier 虚拟局域网安装包（macOS pkg / Windows msi），离线可用 -->
-    <Content Include="../../assets/installers/ZeroTier-One.pkg" Condition="!$(RuntimeIdentifier.StartsWith('win'))" Link="installers/ZeroTier-One.pkg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Include="../../assets/installers/ZeroTier-One.msi" Condition="$(RuntimeIdentifier.StartsWith('win'))" Link="installers/ZeroTier-One.msi">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
   </ItemGroup>
 </Project>

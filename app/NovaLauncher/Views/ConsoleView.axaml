@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="NovaLauncher.Views.ConsoleView">
-  <Grid RowDefinitions="Auto,*" Margin="0,0,0,0">
+  <Grid RowDefinitions="Auto,Auto,*" Margin="0,0,0,0">
     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
       <TextBlock Classes="pageTitle" Text="控制台" VerticalAlignment="Center" />
       <Border Width="1" Height="24" Background="#222834" />
@@ -12,7 +12,58 @@
       </Button>
     </StackPanel>
 
-    <Border Grid.Row="1" Background="#0B0D11" CornerRadius="10" BorderBrush="#222834" BorderThickness="1" Padding="12">
+    <!-- 崩溃诊断面板（借鉴 PCL2 / HMCL 错误分析：崩溃后直接给出原因与修复建议） -->
+    <Border Grid.Row="1" Background="#151A22" CornerRadius="10" BorderBrush="#2A3441" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Text="🩺 崩溃诊断" FontWeight="SemiBold" FontSize="14" />
+            <TextBlock IsVisible="{Binding HasFindings}" Foreground="#E5534B" FontSize="11"
+                       Text="{Binding DiagnosticStatus}" VerticalAlignment="Center" />
+            <TextBlock IsVisible="{Binding !HasFindings}" Foreground="#8B949E" FontSize="11"
+                       Text="{Binding DiagnosticStatus}" VerticalAlignment="Center" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="secondary" Command="{Binding AnalyzeCrashCommand}">
+            <TextBlock Text="分析崩溃日志" />
+          </Button>
+          <Button Grid.Column="2" Classes="secondary" Command="{Binding OpenLogsCommand}">
+            <TextBlock Text="打开日志目录" />
+          </Button>
+          <Button Grid.Column="3" Classes="secondary" Command="{Binding ExportDiagnosticsCommand}">
+            <TextBlock Text="导出诊断包" />
+          </Button>
+        </Grid>
+
+        <ItemsControl ItemsSource="{Binding Findings}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="6" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Background="#1C232E" CornerRadius="8" Padding="12,8">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                  <Border Grid.Column="0" Background="#4A2B2B" CornerRadius="5" Padding="8,2" VerticalAlignment="Top">
+                    <TextBlock Text="{Binding Level}" FontSize="10" Foreground="#FF8A80" />
+                  </Border>
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Foreground="#FFC857" />
+                    <TextBlock Text="{Binding Detail}" FontSize="11" Foreground="#9AA5B1" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Suggestion}" FontSize="11" Foreground="#8FCB9B" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock IsVisible="{Binding !HasFindings}" FontSize="11" Foreground="#5C6470"
+                   Text="启动并退出游戏后，这里会自动分析 latest.log 与崩溃报告，给出常见崩溃原因（内存不足 / Java 版本 / mod 冲突 / 显卡驱动等）和修复建议；也可手动点「分析崩溃日志」。若需要求助他人，点「导出诊断包」一键打包系统信息与日志。" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="2" Background="#0B0D11" CornerRadius="10" BorderBrush="#222834" BorderThickness="1" Padding="12">
       <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding Filtered}">
           <ItemsControl.ItemTemplate>

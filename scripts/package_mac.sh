@@ -27,10 +27,6 @@ cp "$ROOT/app/plugins/NovaModsLoader/bin/Release/net8.0/NovaModsLoader.dll" "$AP
 cp "$ROOT/app/plugins/PythonHello/plugin.py" "$APP/Contents/MacOS/plugins/"
 cp "$ROOT/app/plugins/CDemo/build/c_demo.dylib" "$APP/Contents/MacOS/plugins/"
 
-echo "[2.5/5] 内置 ZeroTier 安装包（虚拟局域网离线可用）..."
-mkdir -p "$APP/Contents/MacOS/installers"
-cp "$ROOT/assets/installers/ZeroTier-One.pkg" "$APP/Contents/MacOS/installers/"
-
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

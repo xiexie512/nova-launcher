@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>NovaNet.Server</RootNamespace>
+    <AssemblyName>NovaNetHub</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 协议唯一真源：帧编解码/常量与客户端共用，避免协议漂移 -->
+    <ProjectReference Include="../app/NovaNet.Engine/NovaNet.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 排除测试目录，避免被默认 glob 编入服务端 -->
+    <Compile Remove="tests/**/*.cs" />
+    <None Remove="tests/**/*" />
+    <Content Remove="tests/**/*" />
+  </ItemGroup>
+
+</Project>

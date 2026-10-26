@@ -53,6 +53,32 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string GameRoot => AppPaths.Games;
     public string KernelVersion => AppServices.KernelVersion;
 
+    // ===== 内存自动推荐（借鉴 HMCL 自动内存分配）=====
+    /// <summary>物理内存（MB），探测失败返回 0。</summary>
+    public long TotalMemoryMb => SystemInfo.TryGetTotalMemoryMb(out var m) ? m : 0;
+
+    /// <summary>按物理内存推导的推荐游戏内存（MB）。</summary>
+    public int RecommendedMemoryMb
+    {
+        get
+        {
+            var total = TotalMemoryMb;
+            if (total <= 0) return 2048;
+            if (total <= 3072) return 1024;   // 3G 老机器
+            if (total <= 4096) return 1536;   // 4G
+            if (total <= 8192) return 2048;   // 8G（M 系列 MacBook Air 等）
+            if (total <= 16384) return 4096;  // 16G
+            if (total <= 32768) return 6144;  // 32G
+            return 8192;                       // 64G+
+        }
+    }
+
+    public string MemoryHint => TotalMemoryMb > 0
+        ? $"本机物理内存 {TotalMemoryMb} MB，推荐分配 {RecommendedMemoryMb} MB"
+        : "未能探测物理内存，推荐值按 8GB 内存估算";
+
+    public bool HasTotalMemory => TotalMemoryMb > 0;
+
     public SettingsViewModel()
     {
         foreach (var a in SettingsService.S.ExtraJvmArgs) ExtraArgs.Add(a);
@@ -129,6 +155,45 @@ public sealed partial class SettingsViewModel : ObservableObject
             FileName = AppPaths.Home,
             UseShellExecute = true,
         });
+    }
+
+    /// <summary>一键把游戏内存设为按物理内存推荐的值。</summary>
+    [RelayCommand]
+    private void ApplyRecommendedMemory()
+    {
+        MemoryMb = RecommendedMemoryMb;
+        Status = $"内存已设为推荐值 {RecommendedMemoryMb} MB";
+        OnPropertyChanged(nameof(MemoryMb));
+    }
+
+    /// <summary>一键填入常用 JVM 参数模板（幂等，不会重复添加）。</summary>
+    [RelayCommand]
+    private void ApplyJvmTemplate()
+    {
+        var template = new[]
+        {
+            "-XX:+UseG1GC",
+            "-XX:MaxGCPauseMillis=100",
+            "-XX:+UseStringDeduplication",
+            "-Dfile.encoding=UTF-8",
+        };
+        var added = 0;
+        foreach (var arg in template)
+        {
+            if (ExtraArgs.Any(a => string.Equals(a, arg, StringComparison.OrdinalIgnoreCase))) continue;
+            ExtraArgs.Add(arg);
+            added++;
+        }
+        SyncArgs();
+        Status = added > 0 ? $"已填入 {added} 条推荐 JVM 参数（G1GC 低延迟 GC + UTF-8 编码）" : "推荐参数已存在，无需重复添加";
+    }
+
+    /// <summary>一键导出诊断信息包（系统信息 + 日志 + 崩溃报告，脱敏打包）。</summary>
+    [RelayCommand]
+    private void ExportDiagnostics()
+    {
+        var path = DiagnosticExporter.Export();
+        Status = path != null ? "诊断包已导出：" + path : "导出失败，详见控制台日志";
     }
 
     private void SyncArgs()

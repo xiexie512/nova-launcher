@@ -18,6 +18,9 @@ public sealed class LaunchService
     public Process? Proc { get; private set; }
     public bool IsRunning => Proc is { HasExited: false };
 
+    /// <summary>最近一次成功启动的版本（供崩溃诊断/控制台定位日志）。</summary>
+    public string? LastVersionId { get; private set; }
+
     public event Action? Stopped;
 
     public LaunchService(VersionService versions) => _versions = versions;
@@ -44,6 +47,13 @@ public sealed class LaunchService
                 java = JavaService.FindJava();
             if (string.IsNullOrEmpty(java))
                 return (false, "未找到 Java 运行时，请到设置中指定 Java 路径，或使用「自动下载 Java」");
+
+            // 内存设置合理性校验（借鉴 HMCL 的内存建议：超过物理内存的 90% 提醒）
+            if (SystemInfo.TryGetTotalMemoryMb(out var totalMb) && totalMb > 0
+                && SettingsService.S.MemoryMb > (long)(totalMb * 0.9))
+            {
+                LogService.Warn($"内存分配 {SettingsService.S.MemoryMb} MB 超过物理内存 {totalMb} MB 的 90%，可能导致系统卡顿或启动失败。建议在设置页点击「按推荐值设置」降到推荐内存。");
+            }
 
             // 3. 读取版本 JSON
             var vjText = File.ReadAllText(AppPaths.VersionJson(id));
@@ -141,9 +151,26 @@ public sealed class LaunchService
                 }
                 catch { }
                 LauncherEvents.RaiseGameLaunched(new LaunchInfo { VersionId = id, AccountName = account.Name, MemoryMb = SettingsService.S.MemoryMb, GameDir = AppPaths.GameDir(id) });
+                // 游戏退出后：智能诊断最近日志/崩溃报告，把结论打到控制台（借鉴 PCL2 错误分析）
+                try
+                {
+                    var findings = GameDiagnostics.Analyze(id);
+                    if (findings.Count > 0)
+                    {
+                        LogService.Warn("—— 游戏退出诊断（共 " + findings.Count + " 条，详见控制台顶部面板）——");
+                        foreach (var f in findings.Take(3))
+                            LogService.Warn(f.Title + "：" + f.Suggestion);
+                    }
+                    else if (p.ExitCode != 0)
+                    {
+                        LogService.Info("游戏进程退出，未在日志中发现常见崩溃原因（可在控制台点「分析崩溃日志」手动排查）。");
+                    }
+                }
+                catch { /* 诊断失败不影响主流程 */ }
                 Stopped?.Invoke();
             };
             MonitorService.Start(p);
+            LastVersionId = id;
             LogService.Info("游戏已启动 ✓");
             return (true, null);
         }

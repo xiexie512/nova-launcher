@@ -862,10 +862,10 @@ public partial class HomeView : UserControl
 
     private async void CopyLanIp_Click(object? sender, RoutedEventArgs e)
     {
-        if (Vm == null || Vm.LanIp == "尚未分配" || Vm.LanIp == "未安装") return;
+        if (Vm == null || Vm.LanIp.StartsWith("未加入") || Vm.LanIp.StartsWith("未配置") || Vm.LanIp.StartsWith("尚未")) return;
         var top = TopLevel.GetTopLevel(this);
         if (top?.Clipboard != null)
             await top.Clipboard.SetTextAsync(Vm.LanIp);
-        Vm.Status = $"已复制虚拟 IP {Vm.LanIp}，发给好友即可通过虚拟内网连接";
+        Vm.Status = $"已复制虚拟 IP {Vm.LanIp}，发到房间内给好友，好友在游戏内通过虚拟 IP 连接";
     }
 }

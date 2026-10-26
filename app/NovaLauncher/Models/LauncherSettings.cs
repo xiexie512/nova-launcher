@@ -34,8 +34,16 @@ public sealed class LauncherSettings
     public string AiKey { get; set; } = "";
     public string AiModel { get; set; } = "deepseek-chat";
 
-    /// <summary>ZeroTier Central 个人 API Token（后台管理成员用，my.zerotier.com → Account 生成）。</summary>
-    public string ZeroTierToken { get; set; } = "";
+    /// <summary>NovaNet Hub 地址（自研虚拟局域网，形如 hub.example.com:8535，空 = 未配置）。</summary>
+    public string NovaNetServer { get; set; } = "";
+    /// <summary>本机客户端标识（16 位十六进制，首次自动生成并持久化，用于重连后保持身份与虚拟 IP）。</summary>
+    public string NovaNetClientId { get; set; } = "";
+    /// <summary>本机 Minecraft 局域网端口（对局域网开放时的端口，隧道数据最终转发到这里）。</summary>
+    public int NovaNetLocalGamePort { get; set; } = 25565;
+    /// <summary>上次加入的房间码（断线重连自动回房）。</summary>
+    public string NovaNetLastRoomCode { get; set; } = "";
+    /// <summary>上次房间密码（仅存本机，用于自动回房）。</summary>
+    public string NovaNetLastRoomPassword { get; set; } = "";
 
     // 主页自定义
     public List<ServerEntry> Servers { get; set; } = new();

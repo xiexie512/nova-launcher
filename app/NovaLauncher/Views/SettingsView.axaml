@@ -72,6 +72,10 @@
               <Slider Minimum="512" Maximum="16384" TickFrequency="256" IsSnapToTickEnabled="True" Width="360"
                       Value="{Binding MemoryMb}" />
               <TextBlock Text="{Binding MemoryMb, StringFormat='{}{0} MB'}" VerticalAlignment="Center" />
+              <Button Classes="secondary" Command="{Binding ApplyRecommendedMemoryCommand}">
+                <TextBlock Text="按推荐值设置" />
+              </Button>
+              <TextBlock Text="{Binding MemoryHint}" Classes="muted" VerticalAlignment="Center" FontSize="11" />
             </StackPanel>
             <TextBlock Grid.Row="1" Grid.Column="0" Text="窗口分辨率（0=默认）" VerticalAlignment="Center" />
             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
@@ -125,7 +129,12 @@
       <!-- 额外 JVM 参数 -->
       <Border Classes="card">
         <StackPanel Spacing="10">
-          <TextBlock Text="🧪 额外 JVM 参数" FontWeight="SemiBold" FontSize="15" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <TextBlock Text="🧪 额外 JVM 参数" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="secondary" Command="{Binding ApplyJvmTemplateCommand}">
+              <TextBlock Text="填入推荐模板（G1GC + UTF-8）" />
+            </Button>
+          </Grid>
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <TextBox x:Name="ArgBox" Grid.Column="0" Watermark="如 -XX:+UseZGC" />
             <Button Grid.Column="1" Classes="secondary" Click="AddArg_Click">
@@ -197,10 +206,15 @@
             <Button Classes="secondary" Command="{Binding OpenHomeDirCommand}">
               <TextBlock Text="打开数据目录" />
             </Button>
+            <Button Classes="secondary" Command="{Binding ExportDiagnosticsCommand}">
+              <TextBlock Text="导出诊断包" />
+            </Button>
             <Button Classes="secondary" Command="{Binding SaveCommand}">
               <TextBlock Text="保存设置" />
             </Button>
           </StackPanel>
+          <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}"
+                     Text="遇到启动/崩溃问题需要求助时，「导出诊断包」会打包系统信息、日志与崩溃报告（API Key 等敏感信息已打码），方便直接发给别人排查。" />
         </StackPanel>
       </Border>
     </StackPanel>
