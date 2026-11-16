@@ -7,7 +7,7 @@ using NovaLauncher.Services;
 
 namespace NovaLauncher.ViewModels;
 
-public enum PageKey { Home, Versions, Accounts, Modpacks, Plugins, Monitor, Lan, Labs, Settings, Console }
+public enum PageKey { Home, Versions, Accounts, Modpacks, Plugins, Monitor, Lan, Labs, Settings, Console, ModSearch }
 
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -24,6 +24,7 @@ public sealed partial class MainViewModel : ObservableObject
     public LabsViewModel Labs { get; } = new();
     public SettingsViewModel Settings { get; } = new();
     public ConsoleViewModel Console { get; } = new();
+    public ModSearchViewModel ModSearch { get; } = new();
 
     /// <summary>插件注册的动态页面。</summary>
     public ObservableCollection<PluginPageViewModel> PluginPages { get; } = new();
@@ -93,6 +94,7 @@ public sealed partial class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsPlugins)); OnPropertyChanged(nameof(IsMonitor));
                 OnPropertyChanged(nameof(IsLan)); OnPropertyChanged(nameof(IsLabs));
                 OnPropertyChanged(nameof(IsSettings)); OnPropertyChanged(nameof(IsConsole));
+                OnPropertyChanged(nameof(IsModSearch));
                 OnPropertyChanged(nameof(NavVisible));
             }
         }
@@ -109,6 +111,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsPlugins)); OnPropertyChanged(nameof(IsMonitor));
         OnPropertyChanged(nameof(IsLan)); OnPropertyChanged(nameof(IsLabs));
         OnPropertyChanged(nameof(IsSettings)); OnPropertyChanged(nameof(IsConsole));
+        OnPropertyChanged(nameof(IsModSearch));
         OnPropertyChanged(nameof(NavVisible));
     }
 
@@ -131,6 +134,7 @@ public sealed partial class MainViewModel : ObservableObject
                 PageKey.Lan => Lan,
                 PageKey.Labs => Labs,
                 PageKey.Settings => Settings,
+                PageKey.ModSearch => ModSearch,
                 _ => Console,
             };
         }
@@ -152,6 +156,7 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsLabs => PluginPageKey == null && Page == PageKey.Labs;
     public bool IsSettings => PluginPageKey == null && Page == PageKey.Settings;
     public bool IsConsole => PluginPageKey == null && Page == PageKey.Console;
+    public bool IsModSearch => PluginPageKey == null && Page == PageKey.ModSearch;
 
     /// <summary>
     /// 导航栏可见性：仅在首页且开启编辑主页模式（CustomizeOpen）时隐藏导航栏；

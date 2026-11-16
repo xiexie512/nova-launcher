@@ -20,6 +20,7 @@
     <DataTemplate DataType="{x:Type vm:LabsViewModel}"><views:LabsView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:ConsoleViewModel}"><views:ConsoleView /></DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ModSearchViewModel}"><views:ModSearchView /></DataTemplate>
     <DataTemplate DataType="{x:Type vm:PluginPageViewModel}"><views:PluginPageView /></DataTemplate>
   </Window.DataTemplates>
 
@@ -61,6 +62,9 @@
           </Button>
           <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Labs}" Classes.selected="{Binding IsLabs}">
             <TextBlock Text="🧪  功能实验室" />
+          </Button>
+          <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.ModSearch}" Classes.selected="{Binding IsModSearch}">
+            <TextBlock Text="🔍  模组搜索" />
           </Button>
           <Button Classes="navBtn" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKey.Settings}" Classes.selected="{Binding IsSettings}">
             <TextBlock Text="⚙️  设置" />

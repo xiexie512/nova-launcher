@@ -22,6 +22,15 @@ public static class ObjectConverters
     /// <summary>count == 0 → true（用于空态提示显示）。</summary>
     public static readonly IValueConverter CountToEmpty = new FuncValueConverter<int, bool>(c => c <= 0);
 
+    /// <summary>string.IsNullOrEmpty 反转：非空 → true（用于 IsVisible）。</summary>
+    public static readonly IValueConverter NotEmpty = new FuncValueConverter<string, bool>(s => !string.IsNullOrEmpty(s));
+
+    /// <summary>int > 0 → true（用于 IsVisible）。</summary>
+    public static readonly IValueConverter GreaterThanZero = new FuncValueConverter<int, bool>(i => i > 0);
+
+    /// <summary>bool 取反。</summary>
+    public static readonly IValueConverter Not = new FuncValueConverter<bool, bool>(b => !b);
+
     /// <summary>最近项目按钮文案：服务器 → 连接，实例 → 启动。</summary>
     public static readonly IValueConverter IsServerToAction = new FuncValueConverter<bool, string>(s => s ? "连接" : "启动");
 }
