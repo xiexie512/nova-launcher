@@ -35,6 +35,9 @@
                 <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.ExportCommand}" CommandParameter="{Binding}">
                   <TextBlock Text="导出" />
                 </Button>
+                <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.ExportMrpackCommand}" CommandParameter="{Binding}">
+                  <TextBlock Text="导出 .mrpack" />
+                </Button>
                 <Button Classes="secondary" Command="{Binding $parent[ListBox].DataContext.OpenDirCommand}" CommandParameter="{Binding}">
                   <TextBlock Text="打开目录" />
                 </Button>

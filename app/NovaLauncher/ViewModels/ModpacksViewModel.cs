@@ -64,6 +64,26 @@ public sealed partial class ModpacksViewModel : ObservableObject
         Status = outFile != null ? $"已导出：{outFile}" : "导出失败（实例目录不存在）";
     }
 
+    /// <summary>导出为 .mrpack 格式（Modrinth 标准，可分享/上传）。</summary>
+    [RelayCommand]
+    private async Task ExportMrpackAsync(ModpackInfo? m)
+    {
+        if (m == null) return;
+        Busy = true;
+        Status = "正在导出 .mrpack...";
+        try
+        {
+            var (ok, msg) = await AppServices.Modpacks.ExportMrpackAsync(m.VersionId, AppPaths.Exports,
+                new Progress<string>(s => Status = s));
+            Status = ok ? msg : "导出失败: " + msg;
+        }
+        catch (Exception e)
+        {
+            Status = "导出失败: " + e.Message;
+        }
+        finally { Busy = false; }
+    }
+
     [RelayCommand]
     private void OpenDir(ModpackInfo? m)
     {

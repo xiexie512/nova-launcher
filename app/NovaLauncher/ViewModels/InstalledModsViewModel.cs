@@ -29,7 +29,11 @@ public sealed partial class InstalledModItem : ObservableObject
     private bool _isSelected;
 
     [ObservableProperty]
-    private string _updateStatus = ""; // "", "checking", "update_available", "latest", "error"
+    private string _updateStatus = ""; // "", "checking", "update_available", "latest", "error", "downloading", "updated"
+
+    // 更新相关信息
+    [ObservableProperty]
+    private ModrinthFile? _latestFile; // 最新版本文件信息
 
     public InstalledModItem(string fileName, string filePath, long fileSize, DateTime lastModified, string versionId)
     {
@@ -47,8 +51,12 @@ public sealed partial class InstalledModItem : ObservableObject
         "latest" => "✅",
         "checking" => "⏳",
         "error" => "❌",
+        "downloading" => "⬇",
+        "updated" => "✨",
         _ => ""
     };
+    
+    public bool HasUpdateAvailable => UpdateStatus == "update_available" && LatestFile != null;
 }
 
 /// <summary>
@@ -257,6 +265,7 @@ public sealed partial class InstalledModsViewModel : ObservableObject
                 if (!latest.FileName.Equals(item.FileName, StringComparison.OrdinalIgnoreCase))
                 {
                     item.UpdateStatus = "update_available";
+                    item.LatestFile = latest; // 保存最新版本信息供下载使用
                     update++;
                 }
                 else
@@ -273,6 +282,74 @@ public sealed partial class InstalledModsViewModel : ObservableObject
         }
 
         Status = $"更新检查完成：最新 {ok - update}，有更新 {update}，失败 {fail}";
+        Busy = false;
+    }
+
+    /// <summary>下载并安装选中模组的更新（替换原文件）。</summary>
+    [RelayCommand]
+    private async Task UpdateSelectedAsync()
+    {
+        var selected = Mods.Where(m => m.IsSelected && m.HasUpdateAvailable).ToList();
+        if (selected.Count == 0) { Status = "请先勾选有可用更新的模组"; return; }
+        if (string.IsNullOrEmpty(SelectedVersionId)) { Status = "请选择版本"; return; }
+
+        Busy = true;
+        int ok = 0, fail = 0;
+
+        foreach (var item in selected)
+        {
+            item.UpdateStatus = "downloading";
+            try
+            {
+                var latest = item.LatestFile!;
+                var modsDir = Path.Combine(AppPaths.GameDir(SelectedVersionId), "mods");
+                Directory.CreateDirectory(modsDir);
+                
+                // 备份原文件（以防下载失败）
+                var backupPath = item.FilePath + ".backup";
+                if (File.Exists(item.FilePath))
+                    File.Move(item.FilePath, backupPath);
+
+                var destPath = Path.Combine(modsDir, latest.FileName);
+                
+                await ModrinthClient.DownloadAsync(latest.Url, destPath, p => 
+                    item.UpdateStatus = $"下载中: {p}");
+
+                // 删除备份
+                if (File.Exists(backupPath))
+                    File.Delete(backupPath);
+
+                // 更新项信息
+                var newItem = new InstalledModItem(
+                    latest.FileName,
+                    destPath,
+                    new FileInfo(destPath).Length,
+                    DateTime.Now,
+                    SelectedVersionId
+                ) { IsEnabled = true };
+                
+                var index = Mods.IndexOf(item);
+                Mods.Remove(item);
+                Mods.Insert(index, newItem);
+                
+                newItem.UpdateStatus = "updated";
+                ok++;
+            }
+            catch (Exception e)
+            {
+                item.UpdateStatus = "error";
+                // 尝试恢复备份
+                var backupPath = item.FilePath + ".backup";
+                if (File.Exists(backupPath) && !File.Exists(item.FilePath))
+                    File.Move(backupPath, item.FilePath);
+                fail++;
+                System.Diagnostics.Debug.WriteLine($"Update failed for {item.FileName}: {e.Message}");
+            }
+        }
+
+        Status = $"更新完成：成功 {ok}，失败 {fail}";
+        OnPropertyChanged(nameof(TotalCount));
+        OnPropertyChanged(nameof(EnabledCount));
         Busy = false;
     }
 

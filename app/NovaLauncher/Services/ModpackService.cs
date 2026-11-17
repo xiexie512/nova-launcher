@@ -324,6 +324,204 @@ public sealed class ModpackService
         return outFile;
     }
 
+    /// <summary>导出为 Modrinth 格式整合包（.mrpack），可直接分享或上传到 Modrinth。</summary>
+    public async Task<(bool ok, string message)> ExportMrpackAsync(string versionId, string outDir, IProgress<string>? progress = null)
+    {
+        var dir = AppPaths.GameDir(versionId);
+        if (!Directory.Exists(dir)) return (false, "版本目录不存在");
+
+        // 读取 pack.json 获取元数据
+        var packJson = Path.Combine(AppPaths.VersionDir(versionId), "pack.json");
+        string name = versionId, mcVersion = "", loader = "";
+        if (File.Exists(packJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(packJson));
+                var r = doc.RootElement;
+                name = r.TryGetProperty("name", out var n) ? n.GetString() ?? name : name;
+                mcVersion = r.TryGetProperty("mcVersion", out var m) ? m.GetString() ?? "" : "";
+                loader = r.TryGetProperty("loader", out var l) ? l.GetString() ?? "" : "";
+            }
+            catch { }
+        }
+
+        if (string.IsNullOrEmpty(mcVersion))
+            return (false, "无法获取 MC 版本信息，请确保 pack.json 包含 mcVersion");
+
+        Directory.CreateDirectory(outDir);
+        var safeName = Sanitize(name);
+        var outFile = Path.Combine(outDir, $"{safeName}-{DateTime.Now:yyyyMMdd-HHmmss}.mrpack");
+
+        progress?.Report("创建 .mrpack 索引...");
+
+        using var zip = ZipFile.Open(outFile, ZipArchiveMode.Create);
+
+        // 1. 写入 modrinth.index.json
+        var index = new
+        {
+            formatVersion = 1,
+            game = "minecraft",
+            versionId = "",
+            name = name,
+            summary = $"Exported from NovaLauncher: {name}",
+            dependencies = new Dictionary<string, string>
+            {
+                ["minecraft"] = mcVersion
+            },
+            files = new List<object>()
+        };
+
+        var fileList = new List<object>();
+
+        // 2. 添加模组文件
+        var modsDir = Path.Combine(dir, "mods");
+        if (Directory.Exists(modsDir))
+        {
+            var modFiles = Directory.GetFiles(modsDir, "*.jar");
+            progress?.Report($"扫描 {modFiles.Length} 个模组文件...");
+
+            foreach (var modFile in modFiles)
+            {
+                var fileName = Path.GetFileName(modFile);
+                var sha1 = await ComputeSha1Async(modFile);
+                
+                // 尝试从文件名解析项目信息
+                var (projectId, fileId) = await TryResolveModrinthProjectAsync(fileName);
+                
+                fileList.Add(new
+                {
+                    path = "mods/" + fileName,
+                    hashes = new { sha1 = sha1.ToLowerInvariant() },
+                    env = new { client = "required", server = "optional" },
+                    downloads = projectId != null && fileId != null 
+                        ? new[] { $"https://api.modrinth.com/v2/project/{projectId}/version/{fileId}/file/{fileName}" }
+                        : Array.Empty<string>(),
+                    fileSize = new FileInfo(modFile).Length
+                });
+            }
+        }
+
+        // 3. 添加 overrides（configs, scripts, resourcepacks 等）
+        var overrideDirs = new[] { "config", "scripts", "resourcepacks", "shaderpacks", "kubejs", "defaultconfigs" };
+        foreach (var overrideDir in overrideDirs)
+        {
+            var srcDir = Path.Combine(dir, overrideDir);
+            if (!Directory.Exists(srcDir)) continue;
+
+            foreach (var file in Directory.GetFiles(srcDir, "*", SearchOption.AllDirectories))
+            {
+                var rel = Path.GetRelativePath(dir, file).Replace('\\', '/');
+                var sha1 = await ComputeSha1Async(file);
+                
+                fileList.Add(new
+                {
+                    path = "overrides/" + rel,
+                    hashes = new { sha1 = sha1.ToLowerInvariant() },
+                    env = new { client = "required", server = "optional" },
+                    downloads = Array.Empty<string>(),
+                    fileSize = new FileInfo(file).Length
+                });
+            }
+        }
+
+        // 写入 index.json
+        var indexJson = JsonSerializer.Serialize(new
+        {
+            formatVersion = 1,
+            game = "minecraft",
+            versionId = "",
+            name = name,
+            summary = $"Exported from NovaLauncher: {name}",
+            dependencies = new Dictionary<string, string> { ["minecraft"] = mcVersion },
+            files = fileList
+        }, new JsonSerializerOptions { WriteIndented = true });
+
+        var indexEntry = zip.CreateEntry("modrinth.index.json");
+        using (var entryStream = indexEntry.Open())
+        using (var writer = new StreamWriter(entryStream))
+        {
+            await writer.WriteAsync(indexJson);
+        }
+
+        // 4. 写入模组文件到 zip
+        if (Directory.Exists(modsDir))
+        {
+            foreach (var modFile in Directory.GetFiles(modsDir, "*.jar"))
+            {
+                var fileName = Path.GetFileName(modFile);
+                var entry = zip.CreateEntry("mods/" + fileName, CompressionLevel.Optimal);
+                using var fileStream = File.OpenRead(modFile);
+                using var entryStream = entry.Open();
+                await fileStream.CopyToAsync(entryStream);
+            }
+        }
+
+        // 5. 写入 overrides 文件
+        foreach (var overrideDir in overrideDirs)
+        {
+            var srcDir = Path.Combine(dir, overrideDir);
+            if (!Directory.Exists(srcDir)) continue;
+
+            foreach (var file in Directory.GetFiles(srcDir, "*", SearchOption.AllDirectories))
+            {
+                var rel = Path.GetRelativePath(dir, file).Replace('\\', '/');
+                var entry = zip.CreateEntry("overrides/" + rel, CompressionLevel.Optimal);
+                using var fileStream = File.OpenRead(file);
+                using var entryStream = entry.Open();
+                await fileStream.CopyToAsync(entryStream);
+            }
+        }
+
+        progress?.Report("打包完成");
+        return (true, $"已导出 .mrpack: {outFile}");
+    }
+
+    private static async Task<string> ComputeSha1Async(string filePath)
+    {
+        using var sha1 = System.Security.Cryptography.SHA1.Create();
+        using var stream = File.OpenRead(filePath);
+        var hash = await sha1.ComputeHashAsync(stream);
+        return BitConverter.ToString(hash).Replace("-", "");
+    }
+
+    private static async Task<(string? projectId, string? fileId)> TryResolveModrinthProjectAsync(string fileName)
+    {
+        try
+        {
+            // 从文件名尝试解析 slug
+            var slug = fileName.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) 
+                ? fileName[..^4] : fileName;
+            
+            var parts = slug.Split('-', '_');
+            if (parts.Length < 2) return (null, null);
+            
+            var last = parts[^1];
+            if (!System.Text.RegularExpressions.Regex.IsMatch(last, @"^\d+(\.\d+)+"))
+                return (null, null);
+
+            var projectSlug = string.Join("-", parts.Take(parts.Length - 1));
+            
+            // 搜索项目
+            var results = await ModrinthClient.SearchModsAsync(projectSlug, "", "", 3);
+            var project = results.FirstOrDefault(r => r.Slug.Equals(projectSlug, StringComparison.OrdinalIgnoreCase));
+            if (project == null) return (null, null);
+
+            // 获取版本文件 ID
+            var latest = await ModrinthClient.GetLatestFileAsync(project.ProjectId, "", "", ".jar");
+            // 从 URL 中提取 version ID
+            var uri = new Uri(latest.Url);
+            var segments = uri.AbsolutePath.Split('/');
+            var versionId = segments.Length > 0 ? segments[^2] : null; // /v2/project/{projectId}/version/{versionId}/file/{fileName}
+
+            return (project.ProjectId, versionId);
+        }
+        catch
+        {
+            return (null, null);
+        }
+    }
+
     private static string Sanitize(string s)
     {
         var invalid = Path.GetInvalidFileNameChars();

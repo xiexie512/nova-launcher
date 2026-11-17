@@ -1,10 +1,13 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Platform.Storage;
 using NovaLauncher.ViewModels;
 
 namespace NovaLauncher.Views;
@@ -42,6 +45,39 @@ public partial class WorldMapView : UserControl
 
         // 画布大小变化时重绘
         this.GetObservable(BoundsProperty).Subscribe(_ => RenderMap());
+    }
+
+    /// <summary>导出按钮点击事件。</summary>
+    private async void OnExportMapClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_bitmap == null) return;
+
+        try
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel == null) return;
+
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "导出地图为 PNG",
+                DefaultExtension = "png",
+                SuggestedFileName = $"worldmap_{DateTime.Now:yyyyMMdd_HHmmss}.png",
+                FileTypeChoices = new[]
+                {
+                    new FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } }
+                }
+            });
+
+            if (file == null) return;
+
+            // 使用 WriteableBitmap 保存为 PNG
+            using var stream = await file.OpenWriteAsync();
+            _bitmap.Save(stream);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Export error: {ex.Message}");
+        }
     }
 
     private void RenderMap()

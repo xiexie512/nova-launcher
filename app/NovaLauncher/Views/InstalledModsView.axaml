@@ -23,13 +23,14 @@
 
     <!-- 搜索与批量操作栏 -->
     <Border Grid.Row="2" Classes="card" IsVisible="{Binding Mods.Count, Converter={x:Static local:ObjectConverters.CountToNotEmpty}}">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12">
         <TextBlock Text="搜索:" VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}" />
         <TextBox Grid.Column="1" Width="300" Watermark="筛选模组名称..." Text="{Binding FilterText, Mode=TwoWay}" />
         <TextBlock Grid.Column="2" Text="{Binding TotalCount, StringFormat='共 {0} 个'}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
         <TextBlock Grid.Column="3" Text="{Binding EnabledCount, StringFormat='启用 {0}'}" FontSize="12" Foreground="#7FE08C" VerticalAlignment="Center" />
         <Button Grid.Column="4" Content="检查选中更新" Command="{Binding CheckUpdatesCommand}" Classes="secondary" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
-        <Button Grid.Column="5" Content="批量删除" Command="{Binding BatchDeleteCommand}" Classes="danger" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
+        <Button Grid.Column="5" Content="更新选中" Command="{Binding UpdateSelectedCommand}" Classes="primary" IsEnabled="{Binding Mods.Where(m => m.HasUpdateAvailable && m.IsSelected).Any()}" />
+        <Button Grid.Column="6" Content="批量删除" Command="{Binding BatchDeleteCommand}" Classes="danger" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
       </Grid>
     </Border>
 
@@ -79,6 +80,8 @@
                 <!-- 单项操作 -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                   <Button Content="启用/禁用" Command="{Binding #Root.DataContext.ToggleEnabledCommand}" CommandParameter="{Binding}" Classes="secondary" MinWidth="90" />
+                  <Button Content="更新" Command="{Binding #Root.DataContext.UpdateSelectedCommand}" CommandParameter="{Binding}" Classes="primary" MinWidth="70"
+                          IsVisible="{Binding HasUpdateAvailable}" />
                   <Button Content="删除" Command="{Binding #Root.DataContext.DeleteModCommand}" CommandParameter="{Binding}" Classes="danger" MinWidth="70" />
                 </StackPanel>
 

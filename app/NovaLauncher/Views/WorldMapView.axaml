@@ -54,7 +54,7 @@
         <TextBlock Grid.Column="5" Text="{Binding ChunkCount, StringFormat='区块: {0}'}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
         
         <!-- 导出 -->
-        <Button Grid.Column="6" Content="💾 导出图片" Command="{Binding ExportMapCommand}" Classes="secondary" />
+        <Button Grid.Column="6" Content="💾 导出 PNG" Click="OnExportMapClick" Classes="secondary" />
       </Grid>
     </Border>
 

@@ -17,6 +17,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="NBT.NET" Version="1.0.0" />
     <!-- SDK 8.0.4xx+ 中 MVVM 包的 AfterTargets 钩子失效，强制注入源生成器 -->
     <Analyzer Include="$(NuGetPackageRoot)communitytoolkit.mvvm/8.4.0/analyzers/dotnet/roslyn4.3/cs/CommunityToolkit.Mvvm.SourceGenerators.dll" />
   </ItemGroup>
