@@ -7,7 +7,7 @@ using NovaLauncher.Services;
 
 namespace NovaLauncher.ViewModels;
 
-public enum PageKey { Home, Versions, Accounts, Modpacks, Plugins, Monitor, Lan, Labs, Settings, Console, ModSearch }
+public enum PageKey { Home, Versions, Accounts, Modpacks, Plugins, Monitor, Lan, Labs, Settings, Console, ModSearch, ModpackSearch, InstalledMods, WorldMap }
 
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -25,6 +25,9 @@ public sealed partial class MainViewModel : ObservableObject
     public SettingsViewModel Settings { get; } = new();
     public ConsoleViewModel Console { get; } = new();
     public ModSearchViewModel ModSearch { get; } = new();
+    public ModpackSearchViewModel ModpackSearch { get; } = new();
+    public InstalledModsViewModel InstalledMods { get; } = new();
+    public WorldMapViewModel WorldMap { get; } = new();
 
     /// <summary>插件注册的动态页面。</summary>
     public ObservableCollection<PluginPageViewModel> PluginPages { get; } = new();
@@ -95,6 +98,9 @@ public sealed partial class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsLan)); OnPropertyChanged(nameof(IsLabs));
                 OnPropertyChanged(nameof(IsSettings)); OnPropertyChanged(nameof(IsConsole));
                 OnPropertyChanged(nameof(IsModSearch));
+                OnPropertyChanged(nameof(IsModpackSearch));
+                OnPropertyChanged(nameof(IsInstalledMods));
+                OnPropertyChanged(nameof(IsWorldMap));
                 OnPropertyChanged(nameof(NavVisible));
             }
         }
@@ -112,6 +118,9 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsLan)); OnPropertyChanged(nameof(IsLabs));
         OnPropertyChanged(nameof(IsSettings)); OnPropertyChanged(nameof(IsConsole));
         OnPropertyChanged(nameof(IsModSearch));
+        OnPropertyChanged(nameof(IsModpackSearch));
+        OnPropertyChanged(nameof(IsInstalledMods));
+        OnPropertyChanged(nameof(IsWorldMap));
         OnPropertyChanged(nameof(NavVisible));
     }
 
@@ -135,6 +144,9 @@ public sealed partial class MainViewModel : ObservableObject
                 PageKey.Labs => Labs,
                 PageKey.Settings => Settings,
                 PageKey.ModSearch => ModSearch,
+                PageKey.ModpackSearch => ModpackSearch,
+                PageKey.InstalledMods => InstalledMods,
+                PageKey.WorldMap => WorldMap,
                 _ => Console,
             };
         }
@@ -157,6 +169,9 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsSettings => PluginPageKey == null && Page == PageKey.Settings;
     public bool IsConsole => PluginPageKey == null && Page == PageKey.Console;
     public bool IsModSearch => PluginPageKey == null && Page == PageKey.ModSearch;
+    public bool IsModpackSearch => PluginPageKey == null && Page == PageKey.ModpackSearch;
+    public bool IsInstalledMods => PluginPageKey == null && Page == PageKey.InstalledMods;
+    public bool IsWorldMap => PluginPageKey == null && Page == PageKey.WorldMap;
 
     /// <summary>
     /// 导航栏可见性：仅在首页且开启编辑主页模式（CustomizeOpen）时隐藏导航栏；

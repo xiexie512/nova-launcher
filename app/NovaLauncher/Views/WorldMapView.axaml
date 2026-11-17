@@ -1,0 +1,109 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:NovaLauncher.ViewModels"
+             xmlns:local="using:NovaLauncher.Views"
+             x:Class="NovaLauncher.Views.WorldMapView"
+             x:DataType="vm:WorldMapViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="0,8,0,0">
+    <!-- 标题 -->
+    <TextBlock Grid.Row="0" Classes="pageTitle" Text="世界地图查看器" Margin="0,0,0,16" />
+
+    <!-- 世界选择栏 -->
+    <Border Grid.Row="1" Classes="card" Margin="0,0,0,12">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="12">
+        <TextBlock Text="世界:" VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+        <ComboBox Grid.Column="1" Width="400" PlaceholderText="选择存档"
+                  ItemsSource="{Binding Worlds}" SelectedItem="{Binding SelectedWorldPath, Mode=TwoWay}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="🌍" FontSize="14" VerticalAlignment="Center" />
+                <StackPanel>
+                  <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                  <TextBlock Text="{Binding SizeText}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                </StackPanel>
+              </StackPanel>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Grid.Column="2" Content="🔄 刷新列表" Command="{Binding RefreshWorldListCommand}" Classes="secondary" />
+        <Button Grid.Column="3" Content="🎯 居中" Command="{Binding CenterViewCommand}" Classes="secondary" />
+        <TextBlock Grid.Column="4" Text="{Binding Status}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" TextWrapping="Wrap" />
+      </Grid>
+    </Border>
+
+    <!-- 图层控制与缩放 -->
+    <Border Grid.Row="2" Classes="card" Margin="0,0,0,8">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+        <!-- 图层开关 -->
+        <CheckBox Grid.Column="0" Content="🌈 群系" IsChecked="{Binding ShowBiomes}" VerticalAlignment="Center" ToolTip.Tip="显示群系颜色" />
+        <CheckBox Grid.Column="1" Content="🏗 结构" IsChecked="{Binding ShowStructures}" VerticalAlignment="Center" ToolTip.Tip="显示村庄/神殿/要塞等结构" />
+        <CheckBox Grid.Column="2" Content="💎 矿石" IsChecked="{Binding ShowOres}" VerticalAlignment="Center" ToolTip.Tip="显示矿石分布（模拟数据）" />
+        <CheckBox Grid.Column="3" Content="📐 网格" IsChecked="{Binding ShowGrid}" VerticalAlignment="Center" ToolTip.Tip="显示区块网格" />
+
+        <!-- 缩放控制 -->
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <TextBlock Text="缩放:" VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+          <Button Content="−" Command="{Binding }" Width="28" Height="28" Classes="secondary" ToolTip.Tip="缩小" />
+          <TextBlock Text="{Binding RenderScale, StringFormat='{0}x'}" Width="40" TextAlignment="Center" VerticalAlignment="Center" />
+          <Button Content="+" Command="{Binding }" Width="28" Height="28" Classes="secondary" ToolTip.Tip="放大" />
+        </StackPanel>
+
+        <!-- 区块计数 -->
+        <TextBlock Grid.Column="5" Text="{Binding ChunkCount, StringFormat='区块: {0}'}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+        
+        <!-- 导出 -->
+        <Button Grid.Column="6" Content="💾 导出图片" Command="{Binding ExportMapCommand}" Classes="secondary" />
+      </Grid>
+    </Border>
+
+    <!-- 地图画布区域 -->
+    <Border Grid.Row="3" Classes="card" Background="#0D1117">
+      <Grid>
+        <!-- 主画布 -->
+        <Canvas x:Name="MapCanvas" Background="Transparent" ClipToBounds="True" />
+        
+        <!-- 覆盖层：坐标显示 -->
+        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12" Padding="8,4" Background="#1A1F27CC" CornerRadius="4">
+          <TextBlock x:Name="CoordText" Text="区块: 0, 0" FontSize="12" Foreground="#7FE08C" FontFamily="Consolas, Menlo, monospace" />
+        </Border>
+
+        <!-- 图例 -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12" Padding="10" Background="#1A1F27CC" CornerRadius="8" MaxWidth="220">
+          <StackPanel Spacing="4">
+            <TextBlock Text="图例" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="12" Height="12" Background="#8FBC8F" CornerRadius="2" ToolTip.Tip="平原" />
+              <TextBlock Text="平原/森林" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="12" Height="12" Background="#DEB887" CornerRadius="2" ToolTip.Tip="沙漠" />
+              <TextBlock Text="沙漠/恶地" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="12" Height="12" Background="#4682B4" CornerRadius="2" ToolTip.Tip="海洋" />
+              <TextBlock Text="海洋/河流" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="12" Height="12" Background="#FFD700" CornerRadius="2" ToolTip.Tip="结构" />
+              <TextBlock Text="村庄/结构" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="12" Height="12" Background="#FF6347" CornerRadius="2" ToolTip.Tip="矿石" />
+              <TextBlock Text="矿石密度" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- 正在加载遮罩 -->
+    <Border Grid.Row="3" Background="#000000CC" IsVisible="{Binding Busy}" VerticalAlignment="Stretch">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+        <ProgressBar IsIndeterminate="True" Width="120" Height="6" />
+        <TextBlock Text="{Binding Status}" FontSize="14" Foreground="#7FE08C" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

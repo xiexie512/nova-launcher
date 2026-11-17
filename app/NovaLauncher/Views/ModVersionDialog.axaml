@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:NovaLauncher.ViewModels"
+        xmlns:local="using:NovaLauncher.Views"
+        x:Class="NovaLauncher.Views.ModVersionDialog"
+        Title="选择版本"
+        Width="700" Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBg}">
+
+  <Grid RowDefinitions="Auto,*,Auto" Margin="20">
+    <!-- 标题 -->
+    <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+      <TextBlock Text="{Binding ModTitle}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
+      <TextBlock Text="请选择要安装的版本" FontSize="12" Foreground="{DynamicResource TextMuted}" />
+    </StackPanel>
+
+    <!-- 版本列表 -->
+    <Border Grid.Row="1" Classes="card">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Versions}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Classes="card" Padding="12,8" CornerRadius="6"
+                      Background="{Binding IsSelected, Converter={x:Static local:ObjectConverters.BoolToSelectedBg}}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                  <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="{Binding DisplayText}" FontSize="13" Foreground="{DynamicResource TextPrimary}" FontFamily="Menlo, Consolas, monospace" />
+                    <TextBlock Text="{Binding FileName}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                  </StackPanel>
+                  <RadioButton Grid.Column="1" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                               GroupName="VersionSelection" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <!-- 底部按钮 -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,16,0,0">
+      <Button Content="取消" Command="{Binding CancelCommand}" Classes="secondary" />
+      <Button Content="确认安装" Command="{Binding ConfirmCommand}" Classes="primary" IsEnabled="{Binding HasSelection}" />
+    </StackPanel>
+  </Grid>
+</Window>

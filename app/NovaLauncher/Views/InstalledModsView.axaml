@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:NovaLauncher.ViewModels"
+             xmlns:local="using:NovaLauncher.Views"
+             x:Class="NovaLauncher.Views.InstalledModsView"
+             x:DataType="vm:InstalledModsViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="0,8,0,0">
+    <!-- 标题 -->
+    <TextBlock Grid.Row="0" Classes="pageTitle" Text="已安装模组管理" Margin="0,0,0,16" />
+
+    <!-- 版本选择栏 -->
+    <Border Grid.Row="1" Classes="card" Margin="0,0,0,12">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="12">
+        <TextBlock Text="版本:" VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+        <ComboBox Grid.Column="1" Width="300" PlaceholderText="选择版本"
+                  ItemsSource="{Binding VersionList}" SelectedItem="{Binding SelectedVersionId, Mode=TwoWay}" />
+        <Button Grid.Column="2" Content="刷新版本列表" Command="{Binding RefreshVersionListCommand}" Classes="secondary" />
+        <Button Grid.Column="3" Content="打开 mods 目录" Command="{Binding OpenModsDirCommand}" Classes="secondary" />
+        <TextBlock Grid.Column="4" Text="{Binding Status}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" TextWrapping="Wrap" />
+      </Grid>
+    </Border>
+
+    <!-- 搜索与批量操作栏 -->
+    <Border Grid.Row="2" Classes="card" IsVisible="{Binding Mods.Count, Converter={x:Static local:ObjectConverters.CountToNotEmpty}}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+        <TextBlock Text="搜索:" VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+        <TextBox Grid.Column="1" Width="300" Watermark="筛选模组名称..." Text="{Binding FilterText, Mode=TwoWay}" />
+        <TextBlock Grid.Column="2" Text="{Binding TotalCount, StringFormat='共 {0} 个'}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="3" Text="{Binding EnabledCount, StringFormat='启用 {0}'}" FontSize="12" Foreground="#7FE08C" VerticalAlignment="Center" />
+        <Button Grid.Column="4" Content="检查选中更新" Command="{Binding CheckUpdatesCommand}" Classes="secondary" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
+        <Button Grid.Column="5" Content="批量删除" Command="{Binding BatchDeleteCommand}" Classes="danger" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
+      </Grid>
+    </Border>
+
+    <!-- 全选栏 -->
+    <Border Grid.Row="3" Classes="card" IsVisible="{Binding Mods.Count, Converter={x:Static local:ObjectConverters.CountToNotEmpty}}">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12">
+        <CheckBox IsThreeState="True" VerticalAlignment="Center"
+                  IsChecked="{Binding #Root.DataContext.Mods[0].IsSelected, Mode=TwoWay}"
+                  ToolTip.Tip="全选 / 取消全选" />
+        <TextBlock Text="{Binding SelectedCount, StringFormat='已选 {0} 项'}" FontSize="13" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" FontWeight="SemiBold" />
+        <Button Grid.Column="3" Content="清空选择" Command="{Binding ClearSelectionCommand}" Classes="secondary" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
+      </Grid>
+    </Border>
+
+    <!-- 模组列表 -->
+    <ScrollViewer Grid.Row="4" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding FilteredMods}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="6" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Classes="card">
+              <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12">
+                <!-- 选择框 -->
+                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                          VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+                <!-- 启用/禁用开关 -->
+                <CheckBox Grid.Column="1" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                          ToolTip.Tip="启用/禁用模组" />
+
+                <!-- 模组信息 -->
+                <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                  <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextPrimary}" />
+                    <TextBlock Text="{Binding SizeText}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                    <TextBlock Text="{Binding LastModified, StringFormat='{0:yyyy-MM-dd HH:mm}'}" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                    <TextBlock Text="{Binding StatusIcon}" FontSize="12" VerticalAlignment="Center"
+                               ToolTip.Tip="{Binding UpdateStatus}" />
+                  </Grid>
+                </StackPanel>
+
+                <!-- 单项操作 -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                  <Button Content="启用/禁用" Command="{Binding #Root.DataContext.ToggleEnabledCommand}" CommandParameter="{Binding}" Classes="secondary" MinWidth="90" />
+                  <Button Content="删除" Command="{Binding #Root.DataContext.DeleteModCommand}" CommandParameter="{Binding}" Classes="danger" MinWidth="70" />
+                </StackPanel>
+
+                <!-- 更新状态 -->
+                <TextBlock Grid.Column="4" Text="{Binding UpdateStatus, StringFormat='({0})'}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"
+                           IsVisible="{Binding UpdateStatus, Converter={x:Static local:ObjectConverters.NotEmpty}}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <!-- 空状态 -->
+    <Border Grid.Row="4" Classes="card" Padding="40" IsVisible="{Binding Mods.Count, Converter={x:Static local:ObjectConverters.CountToEmpty}}">
+      <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="📦" FontSize="48" />
+        <TextBlock Text="该版本没有安装任何模组" FontSize="16" Foreground="{DynamicResource TextMuted}" />
+        <TextBlock Text="去「模组搜索」页面下载安装" FontSize="12" Foreground="{DynamicResource TextMuted}" TextAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <!-- 正在加载遮罩 -->
+    <Border Grid.Row="4" Background="#00000080" IsVisible="{Binding Busy}" VerticalAlignment="Stretch">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+        <ProgressBar IsIndeterminate="True" Width="60" Height="6" />
+        <TextBlock Text="正在处理..." FontSize="13" Foreground="{DynamicResource TextPrimary}" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

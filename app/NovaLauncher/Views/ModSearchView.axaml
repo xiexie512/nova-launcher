@@ -1,39 +1,48 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:NovaLauncher.ViewModels"
+             xmlns:local="using:NovaLauncher.Views"
              x:Class="NovaLauncher.Views.ModSearchView"
              x:DataType="vm:ModSearchViewModel">
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="0,8,0,0">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="0,8,0,0">
     <!-- 标题 -->
-    <TextBlock Grid.Row="0" Classes="pageTitle" Text="🔍 模组搜索安装" Margin="0,0,0,16" />
+    <TextBlock Grid.Row="0" Classes="pageTitle" Text="模组搜索安装" Margin="0,0,0,16" />
 
     <!-- 搜索栏 -->
     <Border Grid.Row="1" Classes="card" Margin="0,0,0,12">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="10">
-        <TextBox Grid.Row="0" Grid.Column="0" Watermark="搜索模组名称（如 sodium, journeymap, jei…）"
+        <TextBox Grid.Row="0" Grid.Column="0" Watermark="搜索模组名称（如 sodium, journeymap, jei...）"
                  Text="{Binding Query, Mode=TwoWay}"
                  KeyDown="OnSearchKeyDown" />
         <ComboBox Grid.Row="0" Grid.Column="1" Width="160" PlaceholderText="MC 版本"
                   ItemsSource="{Binding McVersions}" SelectedItem="{Binding SelectedMcVersion, Mode=TwoWay}" />
         <ComboBox Grid.Row="0" Grid.Column="2" Width="140" PlaceholderText="加载器"
                   ItemsSource="{Binding Loaders}" SelectedItem="{Binding SelectedLoader, Mode=TwoWay}" />
-        <ComboBox Grid.Row="0" Grid.Column="3" Width="220" PlaceholderText="安装到版本 🎯"
+        <ComboBox Grid.Row="0" Grid.Column="3" Width="220" PlaceholderText="安装到版本"
                   ItemsSource="{Binding InstalledVersions}" SelectedItem="{Binding SelectedVersionId, Mode=TwoWay}" />
-        <Button Grid.Row="0" Grid.Column="4" Content="🔍 搜索" Command="{Binding SearchCommand}" Classes="primary" IsEnabled="{Binding !Busy}" />
+        <Button Grid.Row="0" Grid.Column="4" Content="搜索" Command="{Binding SearchCommand}" Classes="primary" IsEnabled="{Binding !Busy}" />
 
-        <Button Grid.Row="1" Grid.Column="0" Content="🔄 刷新版本列表" Command="{Binding RefreshInstalledVersionsCommand}" Classes="secondary" />
-        <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Content="📂 打开目标 mods 目录" Command="{Binding OpenModsDirCommand}" Classes="secondary" />
+        <Button Grid.Row="1" Grid.Column="0" Content="刷新版本列表" Command="{Binding RefreshInstalledVersionsCommand}" Classes="secondary" />
+        <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Content="打开目标 mods 目录" Command="{Binding OpenModsDirCommand}" Classes="secondary" />
         <TextBlock Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="2" Text="{Binding Status}" FontSize="12" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" TextWrapping="Wrap" />
       </Grid>
     </Border>
 
-    <!-- 结果列表标题 -->
-    <Border Grid.Row="2" Classes="card" IsVisible="{Binding Results.Count, Converter={x:Static ObjectConverters.CountToNotEmpty}}">
-      <TextBlock Text="{Binding Results.Count, StringFormat='找到 {0} 个模组：'}" FontSize="13" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" />
+    <!-- 批量操作栏 -->
+    <Border Grid.Row="2" Classes="card" IsVisible="{Binding Results.Count, Converter={x:Static local:ObjectConverters.CountToNotEmpty}}">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12">
+        <CheckBox IsThreeState="True" VerticalAlignment="Center"
+                  IsChecked="{Binding #Root.DataContext.Results[0].IsSelected, Mode=TwoWay}"
+                  ToolTip.Tip="全选 / 取消全选" />
+        <TextBlock Text="{Binding SelectedCount, StringFormat='已选 {0} 项'}" FontSize="13" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" FontWeight="SemiBold" />
+        <Button Grid.Column="3" Content="清空选择" Command="{Binding ClearSelectionCommand}" Classes="secondary" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
+        <Button Grid.Column="4" Content="批量安装选中" Command="{Binding BatchInstallCommand}" Classes="primary" IsEnabled="{Binding SelectedCount, Converter={x:Static local:ObjectConverters.GreaterThanZero}}" />
+      </Grid>
     </Border>
 
-    <ScrollViewer Grid.Row="3" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
+    <!-- 结果列表 -->
+    <ScrollViewer Grid.Row="4" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
       <ItemsControl ItemsSource="{Binding Results}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -43,29 +52,40 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <Border Classes="card">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                <StackPanel Grid.Column="0" Spacing="6">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <!-- 选择框 -->
+                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                          VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,8,0" />
+
+                <!-- 模组信息 -->
+                <StackPanel Grid.Column="1" Spacing="6">
                   <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" />
                     <TextBlock Text="{Binding ProjectType, StringFormat='({0})'}" FontSize="11" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="⬇" FontSize="11" Foreground="{DynamicResource TextMuted}" Grid.Column="2" HorizontalAlignment="Right" />
+                    <TextBlock Text="下载量:" FontSize="11" Foreground="{DynamicResource TextMuted}" Grid.Column="2" HorizontalAlignment="Right" />
                     <TextBlock Text="{Binding DownloadsText}" FontSize="11" Foreground="{DynamicResource TextMuted}" Grid.Column="2" HorizontalAlignment="Right" />
                   </Grid>
                   <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                   <WrapPanel ItemSpacing="6" LineSpacing="4">
-                    <Border Classes="badge" IsVisible="{Binding GameVersion, Converter={x:Static ObjectConverters.NotEmpty}}">
+                    <Border Classes="badge" IsVisible="{Binding GameVersion, Converter={x:Static local:ObjectConverters.NotEmpty}}">
                       <TextBlock Text="{Binding GameVersion, StringFormat='MC {0}'}" FontSize="10" Foreground="{DynamicResource TextMuted}" />
                     </Border>
-                    <Border Classes="badge" IsVisible="{Binding Loader, Converter={x:Static ObjectConverters.NotEmpty}}">
+                    <Border Classes="badge" IsVisible="{Binding Loader, Converter={x:Static local:ObjectConverters.NotEmpty}}">
                       <TextBlock Text="{Binding Loader, StringFormat='{0}'}" FontSize="10" Foreground="{DynamicResource TextMuted}" />
                     </Border>
-                    <Border Classes="badge" IsVisible="{Binding Categories.Count, Converter={x:Static ObjectConverters.GreaterThanZero}}">
+                    <Border Classes="badge" IsVisible="{Binding Categories.Count, Converter={x:Static local:ObjectConverters.GreaterThanZero}}">
                       <TextBlock Text="{Binding Categories[0]}" FontSize="10" Foreground="{DynamicResource TextMuted}" />
                     </Border>
                   </WrapPanel>
                 </StackPanel>
-                <Button Grid.Column="1" Content="⬇ 安装" Command="{Binding #Root.DataContext.InstallCommand}" CommandParameter="{Binding}" Classes="primary" MinWidth="90" VerticalAlignment="Center"
-                        IsEnabled="{Binding #Root.DataContext.Busy, Converter={x:Static ObjectConverters.Not}}" />
+
+                <!-- 安装按钮 -->
+                <StackPanel Grid.Column="2" Orientation="Vertical" Spacing="6" VerticalAlignment="Center">
+                  <Button Content="安装(最新)" Command="{Binding #Root.DataContext.InstallCommand}" CommandParameter="{Binding}" Classes="primary" MinWidth="90"
+                          IsEnabled="{Binding #Root.DataContext.Busy, Converter={x:Static local:ObjectConverters.Not}}" />
+                  <Button Content="选择版本..." Command="{Binding #Root.DataContext.OpenVersionDialogCommand}" CommandParameter="{Binding}" Classes="secondary" MinWidth="90"
+                          IsEnabled="{Binding #Root.DataContext.Busy, Converter={x:Static local:ObjectConverters.Not}}" />
+                </StackPanel>
               </Grid>
             </Border>
           </DataTemplate>
@@ -74,19 +94,19 @@
     </ScrollViewer>
 
     <!-- 空状态 -->
-    <Border Grid.Row="3" Classes="card" Padding="40" IsVisible="{Binding Results.Count, Converter={x:Static ObjectConverters.CountToEmpty}}">
+    <Border Grid.Row="4" Classes="card" Padding="40" IsVisible="{Binding Results.Count, Converter={x:Static local:ObjectConverters.CountToEmpty}}">
       <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock Text="🔍" FontSize="48" />
         <TextBlock Text="输入关键词搜索模组" FontSize="16" Foreground="{DynamicResource TextMuted}" />
-        <TextBlock Text="支持按 MC 版本、加载器筛选，一键安装到选定版本" FontSize="12" Foreground="{DynamicResource TextMuted}" TextAlignment="Center" MaxWidth="400" TextWrapping="Wrap" />
+        <TextBlock Text="支持按 MC 版本、加载器筛选，单装/批量安装到选定版本" FontSize="12" Foreground="{DynamicResource TextMuted}" TextAlignment="Center" MaxWidth="400" TextWrapping="Wrap" />
       </StackPanel>
     </Border>
 
     <!-- 正在加载遮罩 -->
-    <Border Grid.Row="3" Background="#00000080" IsVisible="{Binding Busy}" VerticalAlignment="Stretch">
+    <Border Grid.Row="4" Background="#00000080" IsVisible="{Binding Busy}" VerticalAlignment="Stretch">
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
         <ProgressBar IsIndeterminate="True" Width="60" Height="6" />
-        <TextBlock Text="正在处理…" FontSize="13" Foreground="{DynamicResource TextPrimary}" />
+        <TextBlock Text="正在处理..." FontSize="13" Foreground="{DynamicResource TextPrimary}" />
       </StackPanel>
     </Border>
   </Grid>

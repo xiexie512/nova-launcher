@@ -162,7 +162,20 @@ public static class ModrinthClient
     }
 }
 
-/// <summary>Modrinth 版本文件（选中的下载目标）。</summary>
+/// <summary>Modrinth 完整版本信息（用于版本历史选择）。</summary>
+public sealed class ModrinthVersion
+{
+    public string VersionId { get; init; } = "";
+    public string VersionNumber { get; init; } = "";
+    public string GameVersion { get; init; } = "";
+    public string Loader { get; init; } = "";
+    public string FileName { get; init; } = "";
+    public string Url { get; init; } = "";
+    public DateTime DatePublished { get; init; }
+    public string DisplayText => $"{VersionNumber}  |  MC {GameVersion}  |  {Loader}  |  {DatePublished:yyyy-MM-dd}";
+}
+
+/// <summary>Modrinth 版本文件（选中的下载目标，兼容旧代码）。</summary>
 public sealed class ModrinthFile
 {
     public string FileName { get; init; } = "";
@@ -170,4 +183,61 @@ public sealed class ModrinthFile
     public string VersionNumber { get; init; } = "";
     public string GameVersion { get; init; } = "";
     public string Loader { get; init; } = "";
+}
+
+/// <summary>获取项目的所有版本（用于版本历史选择界面）。</summary>
+public static async Task<List<ModrinthVersion>> GetAllVersionsAsync(string projectIdOrSlug, string? mcVersion, string? loader)
+{
+    return await Task.Run(() =>
+    {
+        var url = $"{Base}/project/{Uri.EscapeDataString(projectIdOrSlug)}/version";
+        if (!string.IsNullOrEmpty(mcVersion)) url += $"?game_versions={Uri.EscapeDataString("[\"" + mcVersion + "\"]")}";
+        if (!string.IsNullOrEmpty(loader)) url += (url.Contains('?') ? "&" : "?") + $"loaders={Uri.EscapeDataString("[\"" + loader + "\"]")}";
+
+        string body;
+        try
+        {
+            body = NovaKernel.HttpGet(url, 30000) ?? throw new Exception("无响应");
+        }
+        catch (Exception e)
+        {
+            throw new Exception("获取版本列表失败: " + e.Message);
+        }
+
+        using var doc = JsonDocument.Parse(body);
+        var arr = doc.RootElement;
+        if (arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0)
+            return new List<ModrinthVersion>();
+
+        var list = new List<ModrinthVersion>();
+        foreach (var v in arr.EnumerateArray())
+        {
+            if (!v.TryGetProperty("files", out var files)) continue;
+            foreach (var f in files.EnumerateArray())
+            {
+                var fn = f.TryGetProperty("filename", out var fnp) ? fnp.GetString() ?? "" : "";
+                if (!fn.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) && !fn.EndsWith(".mrpack", StringComparison.OrdinalIgnoreCase)) continue;
+                var fileUrl = f.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "";
+                if (fileUrl.Length == 0) continue;
+
+                var versionNumber = v.TryGetProperty("version_number", out var vn) ? vn.GetString() ?? "" : "";
+                var gameVersions = v.TryGetProperty("game_versions", out var gv) && gv.GetArrayLength() > 0 ? gv[0].GetString() ?? "" : "";
+                var loaders = v.TryGetProperty("loaders", out var lv) && lv.GetArrayLength() > 0 ? lv[0].GetString() ?? "" : "";
+                var dateStr = v.TryGetProperty("date_published", out var dp) ? dp.GetString() ?? "" : "";
+                DateTime datePublished = DateTime.TryParse(dateStr, out var dt) ? dt : DateTime.MinValue;
+
+                list.Add(new ModrinthVersion
+                {
+                    VersionId = v.TryGetProperty("id", out var vid) ? vid.GetString() ?? "" : "",
+                    VersionNumber = versionNumber,
+                    GameVersion = gameVersions,
+                    Loader = loaders,
+                    FileName = fn,
+                    Url = fileUrl,
+                    DatePublished = datePublished,
+                });
+            }
+        }
+        return list.OrderByDescending(v => v.DatePublished).ToList();
+    });
 }
